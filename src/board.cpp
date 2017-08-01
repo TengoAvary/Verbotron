@@ -9,8 +9,26 @@
 #include <iostream>
 #include <sys/types.h>
 #include <vector>
+#include <cassert>
 
-#include "chess.hpp"
+#include "chess.h"
+
+// initialise move_vectors
+
+const std::vector<Square> Board::move_vectors[12] = {{}, 
+													{{2,1},{2,-1},{1,2},{1,-2},{-2,1},{-2,-1},{-1,2},{-1,-2}}, 
+													{{1,1},{1,-1},{-1,1},{-1,-1}}, 
+													{{1,0},{-1,0},{0,1},{0,-1}}, 
+													{{1,1},{1,-1},{-1,1},{-1,-1},{1,0},{-1,0},{0,1},{0,-1}}, 
+													{{1,1},{1,-1},{-1,1},{-1,-1},{1,0},{-1,0},{0,1},{0,-1}}, 
+													{}, 
+													{{2,1},{2,-1},{1,2},{1,-2},{-2,1},{-2,-1},{-1,2},{-1,-2}}, 
+													{{1,1},{1,-1},{-1,1},{-1,-1}}, 
+													{{1,0},{-1,0},{0,1},{0,-1}}, 
+													{{1,1},{1,-1},{-1,1},{-1,-1},{1,0},{-1,0},{0,1},{0,-1}}, 
+													{{1,1},{1,-1},{-1,1},{-1,-1},{1,0},{-1,0},{0,1},{0,-1}}};
+
+const bool Board::is_limited[12] = {true, true, false, false, false, true, true, true, false, false, false, true};
 
 bool Board::on_board(int rank, int file) {
     if (rank < 0 || rank >= 8 || file < 0 || file >= 8) {
@@ -56,25 +74,34 @@ Board::Board()
     }
 }
 
-int Board::coor_to_bit(int r, int c) {
+int Board::coor_to_bit_position(int r, int c)
+{
     
     return 8*r + c;
     
 }
 
-int Board::bit_to_rank(int b) {
-    
-    return b/8;
-    
+Square Board::find_piece(Piece type)
+{
+
+	uint64_t test_bit = uint64_t(1);
+	for (int bit_position = 0; bit_position<64; bit_position++) {
+		if (test_bit & board[type]) {
+			Square result {bit_position/8, bit_position%8};
+			return result;
+		}
+		else {
+			test_bit <<= 1;
+		}
+	}
+	
+	Square nullresult {-1,-1};
+	return nullresult;
+	
 }
 
-int Board::bit_to_file(int b) {
-    
-    return b%8;
-    
-}
-
-char Board::type_to_char(int type) {
+char Board::type_to_char(int type)
+{
     
     switch (type) {
         case 0 : return 'P';
@@ -95,9 +122,10 @@ char Board::type_to_char(int type) {
     
 }
 
-int Board::piece_at(int rank, int file) {
+int Board::piece_at(int rank, int file)
+{
     
-    uint64_t bit = uint64_t(1) << coor_to_bit(rank, file);
+    uint64_t bit = uint64_t(1) << coor_to_bit_position(rank, file);
     for (int i = 0; i<NO_OF_TYPES; i++) {
         if (board[i] & bit) {
             return i;
@@ -106,34 +134,39 @@ int Board::piece_at(int rank, int file) {
     return 12;
 }
 
-bool Board::piece_at(Piece type, int rank, int file) {
+bool Board::piece_at(Piece type, int rank, int file)
+{
     
-    uint64_t bit = uint64_t(1) << coor_to_bit(rank, file);
+    uint64_t bit = uint64_t(1) << coor_to_bit_position(rank, file);
     return (board[type] & bit);
     
 }
 
-bool Board::piece_at(Piece type, int64_t bit) {
+bool Board::piece_at(Piece type, int64_t bit)
+{
     
     return (board[type] & bit);
     
 }
 
-void Board::put_piece(Piece type, int rank, int file) {
+void Board::put_piece(Piece type, int rank, int file)
+{
     
-    board[type] |= uint64_t(1) << coor_to_bit(rank, file);
+    board[type] |= uint64_t(1) << coor_to_bit_position(rank, file);
     
 }
 
-void Board::remove_piece(int rank, int file) {
+void Board::remove_piece(int rank, int file)
+{
     
     for(int i = 0; i<NO_OF_TYPES; i++) {
-        board[i] -= board[i] & (uint64_t(1)<<coor_to_bit(rank,file));
+        board[i] -= board[i] & (uint64_t(1)<<coor_to_bit_position(rank,file));
     }
     
 }
 
-void Board::print() {
+void Board::print()
+{
     
     for (int rank = 7; rank>=0; rank--) {
         for (int file = 0; file<8; file++) {
@@ -144,7 +177,8 @@ void Board::print() {
     
 }
 
-int Board::direction_to_vector(int direction, bool rank_or_file) {
+int Board::direction_to_vector(int direction, bool rank_or_file)
+{
 
     if(rank_or_file) {
         switch(direction) {
@@ -172,4 +206,33 @@ int Board::direction_to_vector(int direction, bool rank_or_file) {
     }
     std::cout << "Warning, direction_to_vector misbehaving." << std::endl;
     return 0;
+}
+
+std::vector<Square> Board::look_along(Square initial_square, int direction, int N)
+{
+	
+	std::vector<Square> result;
+	
+	return result;
+	
+}
+
+std::vector<Move> Board::get_moves()
+{
+	
+	//$$ In this function we want to avoid unnecessary calculations.
+	//$$ In particular we want to avoid calculating anything more than once.
+	std::vector<Move> result;
+	
+	std::vector<Square> constrained_squares;
+	// Contains the positions of pieces which cannot move without exposing the king to check.
+	// Includes the direction from which the attack is coming.
+	
+	// First we find the position of the king
+	Square king_square = find_piece(turn ? WHITE_KING : BLACK_KING);
+	assert(king_square.rank != -1 && "King not found.");
+    
+	
+	return result;
+	
 }

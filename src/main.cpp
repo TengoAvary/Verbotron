@@ -1,20 +1,17 @@
-//
-//  main.cpp
-//  Chess
-//
-//  Created by Jack Setford on 10/01/2017.
-//  Copyright © 2017 Jack Setford. All rights reserved.
-//
-
 #include <iostream>
 #include <sys/types.h>
 #include <vector>
+#include <cassert>
 
-#include "chess.hpp"
+#include "chess.h"
 
 int main(int argc, const char * argv[]) {
-    
-    Board* board = new Board();
-    board->print();
-    
+	
+	Board *board = new Board();
+	board -> print();
+	
+	board -> get_moves();
+	
+	std::cout << Board::move_vectors[WHITE_KNIGHT][1].rank << Board::move_vectors[WHITE_KNIGHT][1].file;
+	
 }

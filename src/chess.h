@@ -1,17 +1,15 @@
 //
-//  chess.hpp
+//  chess.h
 //  Chess
 //
 //  Created by Jack Setford on 17/04/2017.
 //  Copyright © 2017 Jack Setford. All rights reserved.
 //
 
-#ifndef chess_hpp
-#define chess_hpp
+#ifndef chess_h
+#define chess_h
 
 #include <utility>
-
-using pair = std::pair<int, int>;
 
 enum Piece {
     
@@ -31,8 +29,16 @@ enum Piece {
     
 };
 
-#include "move.hpp"
-#include "board.hpp"
+struct Square {
+	
+	int rank;
+	int file;
+	int direction = 0; // used in get_moves function
+	
+};
+
+#include "move.h"
+#include "board.h"
 
 
-#endif /* chess_hpp */
+#endif /* chess_h */
