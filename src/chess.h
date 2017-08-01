@@ -33,7 +33,7 @@ struct Square {
 	
 	int rank;
 	int file;
-	int direction = 0; // used in get_moves function
+	int direction; // used in get_moves function
 	
 };
 
