@@ -7,9 +7,10 @@
 
 int main(int argc, const char * argv[]) {
 	
-	Board *board = new Board();
-	board -> print();
+	Board board;
 	
-	board -> get_moves();
+	board.get_FEN("Hello!");
+	
+	board.print();
 	
 }

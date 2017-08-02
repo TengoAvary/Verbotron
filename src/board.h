@@ -87,6 +87,9 @@ public:
     void remove_piece(int rank, int file);
     // removes piece (any type) from ('rank', 'file')
     
+	bool piece_at_side(Square square);
+	// returns the side of the piece at 'square'
+	
     void print();
     // prints board
     
@@ -94,9 +97,20 @@ public:
 	// returns a vector of all the squares in a certain 'direction' looking out from 'initial_square'.
 	// stops when it reaches the 'N'th square with a piece on.
 	
+	std::vector<Square> attacking_squares(Square square, bool side, bool taking);
+	// returns a list of all pieces belonging to 'side' that can move to 'square'.
+	// if 'taking' is true, pieces move as if taking (difference is only for pawns).
+	
+	std::vector<Square> find_constrained_squares();
+	// Contains the positions of pieces which cannot move without exposing the king to check.
+	// Includes the direction from which the attack is coming.
+	
 	std::vector<Move> get_moves();
 	// returns a vector containing all possible moves in the current position
     
+	void get_FEN(std::string FEN);
+	// Reads in FEN string and arranges the board accordingly.
+	
 };
 
 #endif /* Board_h */

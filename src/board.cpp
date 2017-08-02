@@ -191,6 +191,18 @@ void Board::remove_piece(int rank, int file)
     
 }
 
+bool Board::piece_at_side(Square square)
+{
+	
+	int type = piece_at(square);
+	assert(type >=0 && type<12 && "No piece at square");
+	if (type < 6) {
+		return true;
+	}
+	return false;
+	
+}
+
 void Board::print()
 {
     
@@ -223,7 +235,64 @@ std::vector<Square> Board::look_along(Square initial_square, int direction, int 
 				}
 			}
 		}
+		else {
+			break;
+		}
 	}
+	return result;
+	
+}
+
+std::vector<Square> Board::attacking_squares(Square square, bool side, bool taking)
+{
+	
+	std::vector<Square> result;
+	
+	return result;
+	
+}
+
+std::vector<Square> Board::find_constrained_squares()
+{
+	
+	std::vector<Square> result;
+	
+	// First we find the position of the king:
+	Square king_square = find_piece(turn ? WHITE_KING : BLACK_KING);
+	// Check that we found the king:
+	assert(king_square.rank != -1 && "King not found.");
+	// Look along each direction from the king:
+	for (int direction = 0; direction<8; direction++) {
+		std::vector<Square> king_line = look_along(king_square, direction, 2);
+		// check attacking piece is on the opposite side:
+		if (!king_line.empty() && is_piece_at(king_line.back()) && piece_at_side(king_line.back()) != turn) {
+			Square attacking_square = king_line.back();
+			// Find blocking piece:
+			Square blocking_square;
+			bool blocking_piece_is_side = false;
+			for (int n = 0; n<king_line.size()-1; n++) {
+				if (is_piece_at(king_line[n]) && piece_at_side(king_line[n]) == turn) {
+					blocking_square = king_line[n];
+					blocking_piece_is_side = true;
+					break;
+				}
+			}
+			if (blocking_piece_is_side) {
+			// checking attacking piece is actually attacking:
+				int attacking_piece_type = piece_at(attacking_square)%6;
+				if (attacking_piece_type == 4) {
+					result.push_back({blocking_square.rank, blocking_square.file, direction});
+				}
+				if (attacking_piece_type == 3 && (direction == 0 || direction == 2 || direction == 4 || direction == 6)) {
+					result.push_back({blocking_square.rank, blocking_square.file, direction});
+				}
+				if (attacking_piece_type == 2 && (direction == 1 || direction == 3 || direction == 5 || direction == 7)) {
+					result.push_back({blocking_square.rank, blocking_square.file, direction});
+				}
+			}	
+		}
+	}
+	
 	return result;
 	
 }
@@ -233,18 +302,36 @@ std::vector<Move> Board::get_moves()
 	
 	std::vector<Move> result;
 	
-	std::vector<Square> constrained_squares;
-	// Will contain the positions of pieces which cannot move without exposing the king to check.
-	// Includes the direction from which the attack is coming.
-	
-	// ** CALCULATING CONSTRAINED_SQUARES **
-	
-	// First we find the position of the king.
-	Square king_square = find_piece(turn ? WHITE_KING : BLACK_KING);
-	// Check that we found the king.
-	assert(king_square.rank != -1 && "King not found.");
-    
+	// First get constrained squares
+	std::vector<Square> constrained_squares = find_constrained_squares();
 	
 	return result;
+	
+}
+
+void Board::get_FEN(std::string FEN) {
+	
+	// set bitboards to zero:
+	for (int i = 0; i < NO_OF_TYPES; i++) {
+		board[i] = uint64_t(0);
+	}
+	can_black_castle_kingside = false;
+	can_black_castle_queenside = false;
+	can_white_castle_kingside = false;
+	can_white_castle_queenside = false;
+	en_passantable = false;
+	
+	char x;
+	
+	// piece placement
+	int file = 0;
+	int rank = 7;
+	int stage = 0;
+	
+	for (int i = 0; i<FEN.length(); i++) {
+		
+		x = FEN.at(i);
+		
+	}
 	
 }
