@@ -15,7 +15,7 @@
 
 // initialise move_vectors
 
-const std::vector<Square> Board::move_vectors[12] = {{}, 
+const std::vector<Square> Board::move_vectors[12] {{}, 
 													{{2,1},{2,-1},{1,2},{1,-2},{-2,1},{-2,-1},{-1,2},{-1,-2}}, 
 													{{1,1},{1,-1},{-1,1},{-1,-1}}, 
 													{{1,0},{-1,0},{0,1},{0,-1}}, 
@@ -28,10 +28,12 @@ const std::vector<Square> Board::move_vectors[12] = {{},
 													{{1,1},{1,-1},{-1,1},{-1,-1},{1,0},{-1,0},{0,1},{0,-1}}, 
 													{{1,1},{1,-1},{-1,1},{-1,-1},{1,0},{-1,0},{0,1},{0,-1}}};
 
-const bool Board::is_limited[12] = {true, true, false, false, false, true, true, true, false, false, false, true};
+const bool Board::is_limited[12] {true, true, false, false, false, true, true, true, false, false, false, true};
 
-bool Board::on_board(int rank, int file) {
-    if (rank < 0 || rank >= 8 || file < 0 || file >= 8) {
+const Square Board::direction_to_vector[8] {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1-1}};
+
+bool Board::on_board(Square square) {
+    if (square.rank < 0 || square.rank >= 8 || square.file < 0 || square.file >= 8) {
         return false;
     }
     else {
@@ -122,6 +124,18 @@ char Board::type_to_char(int type)
     
 }
 
+int Board::piece_at(Square square)
+{
+    
+    uint64_t bit = uint64_t(1) << coor_to_bit_position(square.rank, square.file);
+    for (int i = 0; i<NO_OF_TYPES; i++) {
+        if (board[i] & bit) {
+            return i;
+        }
+    }
+    return 12;
+}
+
 int Board::piece_at(int rank, int file)
 {
     
@@ -134,7 +148,7 @@ int Board::piece_at(int rank, int file)
     return 12;
 }
 
-bool Board::piece_at(Piece type, int rank, int file)
+bool Board::is_piece_at(Piece type, int rank, int file)
 {
     
     uint64_t bit = uint64_t(1) << coor_to_bit_position(rank, file);
@@ -142,7 +156,19 @@ bool Board::piece_at(Piece type, int rank, int file)
     
 }
 
-bool Board::piece_at(Piece type, int64_t bit)
+bool Board::is_piece_at(Square square) {
+	
+	uint64_t bit = uint64_t(1) << coor_to_bit_position(square.rank, square.file);
+    for (int i = 0; i<NO_OF_TYPES; i++) {
+        if (board[i] & bit) {
+            return true;
+        }
+    }
+    return false;
+	
+}
+
+bool Board::is_piece_at(Piece type, int64_t bit)
 {
     
     return (board[type] & bit);
@@ -177,42 +203,27 @@ void Board::print()
     
 }
 
-int Board::direction_to_vector(int direction, bool rank_or_file)
-{
-
-    if(rank_or_file) {
-        switch(direction) {
-            case 0 : return 1;
-            case 1 : return 1;
-            case 2 : return 0;
-            case 3 : return -1;
-            case 4 : return -1;
-            case 5 : return -1;
-            case 6 : return 0;
-            case 7 : return 1;
-        }
-    }
-    else {
-        switch(direction) {
-            case 0 : return 0;
-            case 1 : return 1;
-            case 2 : return 1;
-            case 3 : return 1;
-            case 4 : return 0;
-            case 5 : return -1;
-            case 6 : return -1;
-            case 7 : return -1;
-        }
-    }
-    std::cout << "Warning, direction_to_vector misbehaving." << std::endl;
-    return 0;
-}
-
 std::vector<Square> Board::look_along(Square initial_square, int direction, int N)
 {
 	
 	std::vector<Square> result;
 	
+	Square new_square = initial_square;
+	Square move_vector = direction_to_vector[direction];
+	
+	for (int n = 1; n<8; n++) {
+		new_square.rank += move_vector.rank;
+		new_square.file += move_vector.file;
+		if (on_board(new_square)) {
+			result.push_back(new_square);
+			if (is_piece_at(new_square)) {
+				N--;
+				if (N == 0) {
+					return result;
+				}
+			}
+		}
+	}
 	return result;
 	
 }
@@ -220,16 +231,17 @@ std::vector<Square> Board::look_along(Square initial_square, int direction, int 
 std::vector<Move> Board::get_moves()
 {
 	
-	//$$ In this function we want to avoid unnecessary calculations.
-	//$$ In particular we want to avoid calculating anything more than once.
 	std::vector<Move> result;
 	
 	std::vector<Square> constrained_squares;
-	// Contains the positions of pieces which cannot move without exposing the king to check.
+	// Will contain the positions of pieces which cannot move without exposing the king to check.
 	// Includes the direction from which the attack is coming.
 	
-	// First we find the position of the king
+	// ** CALCULATING CONSTRAINED_SQUARES **
+	
+	// First we find the position of the king.
 	Square king_square = find_piece(turn ? WHITE_KING : BLACK_KING);
+	// Check that we found the king.
 	assert(king_square.rank != -1 && "King not found.");
     
 	

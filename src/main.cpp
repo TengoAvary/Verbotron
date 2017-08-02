@@ -12,6 +12,4 @@ int main(int argc, const char * argv[]) {
 	
 	board -> get_moves();
 	
-	std::cout << Board::move_vectors[WHITE_KNIGHT][1].rank << Board::move_vectors[WHITE_KNIGHT][1].file << Board::move_vectors[WHITE_KNIGHT][1].direction;
-	
 }

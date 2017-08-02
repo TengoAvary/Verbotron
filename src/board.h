@@ -39,8 +39,8 @@ private:
     
     bool can_black_castle_queenside;
     
-    static bool on_board(int rank, int file);
-    // is ('rank', 'file') a legitimate board square?
+    static bool on_board(Square square);
+    // is 'square' a legitimate board square?
     
 	static int coor_to_bit_position(int r, int c);
 	// turns coordinate into bit position
@@ -57,18 +57,28 @@ public:
 	// contains move vectors for all the pieces, if applicable.
 	
 	static const bool is_limited[12];
+	// whether each piece can move arbitrarily far.
+	
+	static const Square direction_to_vector[8];
+	// vectors pointing in each of the 8 directions.
 	
     Square find_piece(Piece type);
 	// scans along the bit string type and returns the positions of the first piece it finds.
 	// especially useful for locating the king, since there can be only one of them.
     
-    int piece_at(int rank, int file);
-    // returns the piece type at square ('rank', 'file'), and 12 if there is no piece there.
+    int piece_at(Square square);
+    // returns the piece type at 'square', and 12 if there is no piece there.
+	
+	int piece_at(int rank, int file);
+	// returns the piece type at {'rank', 'file'} and 12 if there is no piece there.
     
-    bool piece_at(Piece type, int rank, int file);
+    bool is_piece_at(Piece type, int rank, int file);
     // returns true if piece 'type' is at ('rank', 'file'), false otherwise
     
-    bool piece_at(Piece type, int64_t bit);
+	bool is_piece_at(Square square);
+	// return true if any piece is at 'square', false otherwise.
+	
+    bool is_piece_at(Piece type, int64_t bit);
     // returns true if piece 'type' is at 'bit' position
     
     void put_piece(Piece type, int rank, int file);
@@ -80,9 +90,6 @@ public:
     void print();
     // prints board
     
-    static int direction_to_vector(int direction, bool rank_or_file);
-    // takes direction, which is a number between 0 and 7, and returns a vector
-	
 	std::vector<Square> look_along(Square initial_square, int direction, int N);
 	// returns a vector of all the squares in a certain 'direction' looking out from 'initial_square'.
 	// stops when it reaches the 'N'th square with a piece on.
