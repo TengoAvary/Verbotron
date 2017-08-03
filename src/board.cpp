@@ -32,6 +32,19 @@ const bool Board::is_limited[12] {true, true, false, false, false, true, true, t
 
 const Square Board::direction_to_vector[8] {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1-1}};
 
+const bool Board::is_attacking[12][8] {{false, false, false, false, false, false, false, false},
+										{false, false, false, false, false, false, false ,false},
+										{false, true, false, true, false, true, false, true},
+										{true, false, true, false, true, false, true, false},
+										{true, true, true, true, true, true, true, true},
+										{false, false, false, false, false, false, false, false},
+										{false, false, false, false, false, false, false, false},
+										{false, false, false, false, false, false, false ,false},
+										{false, true, false, true, false, true, false, true},
+										{true, false, true, false, true, false, true, false},
+										{true, true, true, true, true, true, true, true},
+										{false, false, false, false, false, false, false, false}};
+
 bool Board::on_board(Square square) {
     if (square.rank < 0 || square.rank >= 8 || square.file < 0 || square.file >= 8) {
         return false;
@@ -44,10 +57,10 @@ bool Board::on_board(Square square) {
 Board::Board()
     : board {}, // set all bitboards to zero first
     move_number {1},
+	half_move_number {0},
     turn {true},
     en_passantable {false},
-    en_passant_square_rank {0},
-    en_passant_square_file {0},
+    en_passant_square {0,0},
     can_white_castle_kingside {true},
     can_white_castle_queenside {true},
     can_black_castle_kingside {true},
@@ -248,6 +261,57 @@ std::vector<Square> Board::attacking_squares(Square square, bool side, bool taki
 	
 	std::vector<Square> result;
 	
+	// look in each direction out from square:
+	for (int direction = 0; direction<8; direction++) {
+		std::vector<Square> look = look_along(square, direction, 1);
+		if (!look.empty()) {
+			Square attacking_square = look.back();
+			if (is_piece_at(attacking_square) && piece_at_side(attacking_square) == side && is_attacking[piece_at(attacking_square)][direction]) {
+				result.push_back({attacking_square.rank, attacking_square.file, direction});
+			}
+		}
+	}
+	
+	// check for knights:
+	for (int i = 0; i<8; i++) {
+		Square attacking_square {square.rank + move_vectors[WHITE_KNIGHT][i].rank, square.file + move_vectors[WHITE_KNIGHT][i].file};
+		if (on_board(attacking_square) && is_piece_at(attacking_square) && piece_at(attacking_square) == (side ? 1 : 7)) {
+			result.push_back(attacking_square);
+		}
+		
+	}
+	
+	// check for pawns:
+	if (taking) {
+		int rank = side ? -1 : 1;
+		for (int file = -1; file<2; file+=2) {
+			Square attacking_square {square.rank + rank, square.file + file};
+			if (on_board(attacking_square) && is_piece_at(attacking_square) && piece_at(attacking_square) == (side ? 0 : 6)) {
+				result.push_back(attacking_square);
+			}
+		}
+	}
+	else {
+		// initial pawn advance
+		if (side && square.rank == 3) {
+			Square attacking_square {1, square.file};
+			if (is_piece_at(attacking_square) && piece_at(attacking_square) == 0) {
+				result.push_back(attacking_square);
+			}
+		}
+		if (!side && square.rank == 4) {
+			Square attacking_square {6, square.file};
+			if (is_piece_at(attacking_square) && piece_at(attacking_square) == 6) {
+				result.push_back(attacking_square);
+			}
+		}
+		// normal pawn move
+		Square attacking_square {square.rank + (side ? -1 : 1), square.file}; 
+		if (on_board(attacking_square) && is_piece_at(attacking_square) && piece_at(attacking_square) == (side ? 0 : 6)) {
+			result.push_back(attacking_square);
+		}
+	}
+	
 	return result;
 	
 }
@@ -277,18 +341,8 @@ std::vector<Square> Board::find_constrained_squares()
 					break;
 				}
 			}
-			if (blocking_piece_is_side) {
-			// checking attacking piece is actually attacking:
-				int attacking_piece_type = piece_at(attacking_square)%6;
-				if (attacking_piece_type == 4) {
-					result.push_back({blocking_square.rank, blocking_square.file, direction});
-				}
-				if (attacking_piece_type == 3 && (direction == 0 || direction == 2 || direction == 4 || direction == 6)) {
-					result.push_back({blocking_square.rank, blocking_square.file, direction});
-				}
-				if (attacking_piece_type == 2 && (direction == 1 || direction == 3 || direction == 5 || direction == 7)) {
-					result.push_back({blocking_square.rank, blocking_square.file, direction});
-				}
+			if (blocking_piece_is_side && is_attacking[piece_at(attacking_square)][direction]) {
+				result.push_back({blocking_square.rank, blocking_square.file, direction});
 			}	
 		}
 	}
@@ -331,6 +385,84 @@ void Board::get_FEN(std::string FEN) {
 	for (int i = 0; i<FEN.length(); i++) {
 		
 		x = FEN.at(i);
+		
+		if (stage == 0) {
+			switch(x) {
+				case ' ': stage++; break;
+				case 'p': put_piece(BLACK_PAWN, rank, file); file++; break;
+				case 'P': put_piece(WHITE_PAWN, rank, file); file++; break;
+				case 'n': put_piece(BLACK_KNIGHT, rank, file); file++; break;
+				case 'N': put_piece(WHITE_KNIGHT, rank, file); file++; break;
+				case 'b': put_piece(BLACK_BISHOP, rank, file); file++; break;
+				case 'B': put_piece(WHITE_BISHOP, rank, file); file++; break;
+				case 'r': put_piece(BLACK_ROOK, rank, file); file++; break;
+				case 'R': put_piece(WHITE_ROOK, rank, file); file++; break;
+				case 'q': put_piece(BLACK_QUEEN, rank, file); file++; break;
+				case 'Q': put_piece(WHITE_QUEEN, rank, file); file++; break;
+				case 'k': put_piece(BLACK_KING, rank, file); file++; break;
+				case 'K': put_piece(WHITE_KING, rank, file); file++; break;
+				case '/': rank--; file = 0; break;
+				case '1': file++; break;
+				case '2': file+=2; break;
+				case '3': file+=3; break;
+				case '4': file+=4; break;
+				case '5': file+=5; break;
+				case '6': file+=6; break;
+				case '7': file+=7; break;
+				case '8': file+=8; break;
+			}
+		}
+		else if (stage == 1) {
+			switch(x) {
+				case 'w': turn=true; break;
+				case 'b': turn=false; break;
+				case ' ': stage++; break;
+			}
+		}
+		else if (stage == 2) {
+			switch(x) {
+				case 'k': can_black_castle_kingside = true; break;
+				case 'K': can_white_castle_kingside = true; break;
+				case 'q': can_black_castle_queenside = true; break;
+				case 'Q': can_white_castle_queenside = true; break;
+			}
+		}
+		else if (stage == 3) {
+			switch(x) {
+				case 'a': file = 0; break;
+				case 'b': file = 1; break;
+				case 'c': file = 2; break;
+				case 'd': file = 3; break;
+				case 'e': file = 4; break;
+				case 'f': file = 5; break;
+				case 'g': file = 6; break;
+				case 'h': file = 7; break;
+				case '3': rank = 2; en_passantable = true; en_passant_square = {rank, file}; break;
+				case '6': rank = 5; en_passantable = true; en_passant_square = {rank, file}; break;
+				case ' ': stage++; break;
+			}
+		}
+		else if (stage == 4) {
+			std::string number;
+			if ('x' != ' ') {
+				number += x;
+			}
+			else {
+				half_move_number = atoi(number.c_str());
+				stage++;
+			}
+		}
+		else if (stage == 5) {
+			std::string number;
+			if ('x' != ' ') {
+				number += x;
+				number += x;
+			}
+			else {
+				move_number = atoi(number.c_str());
+				stage++;
+			}
+		}
 		
 	}
 	

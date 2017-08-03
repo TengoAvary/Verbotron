@@ -22,14 +22,14 @@ private:
 
     int move_number;
     
+	int half_move_number;
+	
     bool turn;
     
     bool en_passantable;
     // did a pawn move forward by two spaces on the previous turn
     
-    int en_passant_square_rank;
-    
-    int en_passant_square_file;
+    Square en_passant_square;
     
     bool can_white_castle_kingside;
     
@@ -58,6 +58,9 @@ public:
 	
 	static const bool is_limited[12];
 	// whether each piece can move arbitrarily far.
+	
+	static const bool is_attacking[12][8];
+	// whether each piece attacks in a given direction.
 	
 	static const Square direction_to_vector[8];
 	// vectors pointing in each of the 8 directions.
@@ -92,7 +95,7 @@ public:
 	
     void print();
     // prints board
-    
+	
 	std::vector<Square> look_along(Square initial_square, int direction, int N);
 	// returns a vector of all the squares in a certain 'direction' looking out from 'initial_square'.
 	// stops when it reaches the 'N'th square with a piece on.
@@ -100,6 +103,7 @@ public:
 	std::vector<Square> attacking_squares(Square square, bool side, bool taking);
 	// returns a list of all pieces belonging to 'side' that can move to 'square'.
 	// if 'taking' is true, pieces move as if taking (difference is only for pawns).
+	// includes the direction from which the attack is coming, except for from pawns and knights.
 	
 	std::vector<Square> find_constrained_squares();
 	// Contains the positions of pieces which cannot move without exposing the king to check.
