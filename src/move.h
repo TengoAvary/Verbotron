@@ -36,9 +36,23 @@ private:
 public:
 	
  	Move(Square initial_position_in, Square final_position_in, int move_type_in, 
-	bool piece_taken_in, Piece moving_piece_in, Piece promotion_piece_in = NO_OF_TYPES,
-	Piece taken_piece = NO_OF_TYPES);
-	// constructor -- promotion piece and taken piece have default values since they might not be used
+	bool piece_taken_in, Piece moving_piece_in, Piece taken_piece = NO_OF_TYPES, Piece promotion_piece_in = NO_OF_TYPES);
+	// constructor -- taken piece and promotion piece have default values since they might not be used
+	
+	Piece get_piece();
+	// returns 'moving_piece'
+	
+	Square get_initial_position();
+	// returns 'initial_position'
+	
+	Square get_final_position();
+	// returns 'final_position'
+	
+	int get_move_type();
+	// returns 'move_type'
+	
+	bool is_piece_taken();
+	// returns 'piece_taken'
 	
 };
 

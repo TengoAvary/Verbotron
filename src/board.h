@@ -65,14 +65,20 @@ public:
 	static const Square direction_to_vector[8];
 	// vectors pointing in each of the 8 directions.
 	
+	static const char rank_to_char[8];
+	// turns int rank into human-readable char
+	
+	static const char file_to_char[8];
+	// turns int file into human-readable char
+	
     Square find_piece(Piece type);
 	// scans along the bit string type and returns the positions of the first piece it finds.
 	// especially useful for locating the king, since there can be only one of them.
     
-    int piece_at(Square square);
+    Piece piece_at(Square square);
     // returns the piece type at 'square', and 12 if there is no piece there.
 	
-	int piece_at(int rank, int file);
+	Piece piece_at(int rank, int file);
 	// returns the piece type at {'rank', 'file'} and 12 if there is no piece there.
     
     bool is_piece_at(Piece type, int rank, int file);
@@ -87,9 +93,15 @@ public:
     void put_piece(Piece type, int rank, int file);
     // puts piece 'type' at ('rank', 'file')
     
+	void put_piece(Piece type, Square square);
+	// puts piece 'type' at 'square'
+	
     void remove_piece(int rank, int file);
     // removes piece (any type) from ('rank', 'file')
     
+	void remove_piece(Square square);
+	// remove piece (any type) from 'square'
+	
 	bool piece_at_side(Square square);
 	// returns the side of the piece at 'square'
 	
@@ -103,7 +115,6 @@ public:
 	std::vector<Square> attacking_squares(Square square, bool side, bool taking);
 	// returns a list of all pieces belonging to 'side' that can move to 'square'.
 	// if 'taking' is true, pieces move as if taking (difference is only for pawns).
-	// includes the direction from which the attack is coming, except for from pawns and knights.
 	
 	std::vector<Square> find_constrained_squares();
 	// Contains the positions of pieces which cannot move without exposing the king to check.
@@ -114,6 +125,9 @@ public:
     
 	void get_FEN(std::string FEN);
 	// Reads in FEN string and arranges the board accordingly.
+	
+	std::string move_to_str(Move move);
+	// Returns the string for 'move' in ordinary notation
 	
 };
 

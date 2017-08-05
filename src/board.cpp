@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sys/types.h>
 #include <vector>
+#include <set>
 #include <cassert>
 
 #include "chess.h"
@@ -44,6 +45,10 @@ const bool Board::is_attacking[12][8] {{false, false, false, false, false, false
 										{true, false, true, false, true, false, true, false},
 										{true, true, true, true, true, true, true, true},
 										{false, false, false, false, false, false, false, false}};
+
+const char Board::rank_to_char[8] {'1', '2', '3', '4', '5', '6', '7', '8'};
+
+const char Board::file_to_char[8] {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 
 bool Board::on_board(Square square) {
     if (square.rank < 0 || square.rank >= 8 || square.file < 0 || square.file >= 8) {
@@ -137,28 +142,28 @@ char Board::type_to_char(int type)
     
 }
 
-int Board::piece_at(Square square)
+Piece Board::piece_at(Square square)
 {
     
     uint64_t bit = uint64_t(1) << coor_to_bit_position(square.rank, square.file);
     for (int i = 0; i<NO_OF_TYPES; i++) {
         if (board[i] & bit) {
-            return i;
+            return static_cast<Piece>(i);
         }
     }
-    return 12;
+    return static_cast<Piece>(12);
 }
 
-int Board::piece_at(int rank, int file)
+Piece Board::piece_at(int rank, int file)
 {
     
     uint64_t bit = uint64_t(1) << coor_to_bit_position(rank, file);
     for (int i = 0; i<NO_OF_TYPES; i++) {
         if (board[i] & bit) {
-            return i;
+            return static_cast<Piece>(i);
         }
     }
-    return 12;
+    return static_cast<Piece>(12);
 }
 
 bool Board::is_piece_at(Piece type, int rank, int file)
@@ -169,7 +174,8 @@ bool Board::is_piece_at(Piece type, int rank, int file)
     
 }
 
-bool Board::is_piece_at(Square square) {
+bool Board::is_piece_at(Square square)
+{
 	
 	uint64_t bit = uint64_t(1) << coor_to_bit_position(square.rank, square.file);
     for (int i = 0; i<NO_OF_TYPES; i++) {
@@ -195,6 +201,13 @@ void Board::put_piece(Piece type, int rank, int file)
     
 }
 
+void Board::put_piece(Piece type, Square square)
+{
+	
+	board[type] |= uint64_t(1) << coor_to_bit_position(square.rank, square.file);
+	
+}
+
 void Board::remove_piece(int rank, int file)
 {
     
@@ -202,6 +215,15 @@ void Board::remove_piece(int rank, int file)
         board[i] -= board[i] & (uint64_t(1)<<coor_to_bit_position(rank,file));
     }
     
+}
+
+void Board::remove_piece(Square square)
+{
+	
+	for(int i = 0; i<NO_OF_TYPES; i++) {
+        board[i] -= board[i] & (uint64_t(1)<<coor_to_bit_position(square.rank, square.file));
+    }
+	
 }
 
 bool Board::piece_at_side(Square square)
@@ -261,7 +283,7 @@ std::vector<Square> Board::attacking_squares(Square square, bool side, bool taki
 	
 	std::vector<Square> result;
 	
-	// look in each direction out from square:
+	// look in each direction out from square
 	for (int direction = 0; direction<8; direction++) {
 		std::vector<Square> look = look_along(square, direction, 1);
 		if (!look.empty()) {
@@ -269,46 +291,6 @@ std::vector<Square> Board::attacking_squares(Square square, bool side, bool taki
 			if (is_piece_at(attacking_square) && piece_at_side(attacking_square) == side && is_attacking[piece_at(attacking_square)][direction]) {
 				result.push_back({attacking_square.rank, attacking_square.file, direction});
 			}
-		}
-	}
-	
-	// check for knights:
-	for (int i = 0; i<8; i++) {
-		Square attacking_square {square.rank + move_vectors[WHITE_KNIGHT][i].rank, square.file + move_vectors[WHITE_KNIGHT][i].file};
-		if (on_board(attacking_square) && is_piece_at(attacking_square) && piece_at(attacking_square) == (side ? 1 : 7)) {
-			result.push_back(attacking_square);
-		}
-		
-	}
-	
-	// check for pawns:
-	if (taking) {
-		int rank = side ? -1 : 1;
-		for (int file = -1; file<2; file+=2) {
-			Square attacking_square {square.rank + rank, square.file + file};
-			if (on_board(attacking_square) && is_piece_at(attacking_square) && piece_at(attacking_square) == (side ? 0 : 6)) {
-				result.push_back(attacking_square);
-			}
-		}
-	}
-	else {
-		// initial pawn advance
-		if (side && square.rank == 3) {
-			Square attacking_square {1, square.file};
-			if (is_piece_at(attacking_square) && piece_at(attacking_square) == 0) {
-				result.push_back(attacking_square);
-			}
-		}
-		if (!side && square.rank == 4) {
-			Square attacking_square {6, square.file};
-			if (is_piece_at(attacking_square) && piece_at(attacking_square) == 6) {
-				result.push_back(attacking_square);
-			}
-		}
-		// normal pawn move
-		Square attacking_square {square.rank + (side ? -1 : 1), square.file}; 
-		if (on_board(attacking_square) && is_piece_at(attacking_square) && piece_at(attacking_square) == (side ? 0 : 6)) {
-			result.push_back(attacking_square);
 		}
 	}
 	
@@ -356,14 +338,56 @@ std::vector<Move> Board::get_moves()
 	
 	std::vector<Move> result;
 	
-	// First get constrained squares
+	/////////////// CALCULATE USEFUL THINGS \\\\\\\\\\\\\\\
+	
+	Piece king = turn ? WHITE_KING : BLACK_KING;
+	Square king_square = find_piece(king);
+	assert(king_square.rank != -1 && "King not found");
+	Square enemy_king_square = find_piece(turn ? BLACK_KING : WHITE_KING);
+	assert(enemy_king_square.rank != -1 && "Enemy king not found");
+	
+	// Get constrained squares:
 	std::vector<Square> constrained_squares = find_constrained_squares();
+	
+	// Check whether the king is in check:
+	std::vector<Square> king_attackers	= attacking_squares(king_square, !turn, true);
+	bool in_check = (king_attackers.empty() ? false : true);
+	
+	/////////////// IF KING IS IN CHECK \\\\\\\\\\\\\\\
+	
+	if(in_check) {
+		
+		// king moves:
+		remove_piece(king_square);   // WHY IS THIS HERE???
+		for (int i = 0; i<8; i++) {
+			Square new_square {king_square.rank + move_vectors[king][i].rank, king_square.file + move_vectors[king][i].file};
+			if (on_board(new_square) && (!is_piece_at(new_square) || piece_at_side(new_square) != turn)) {
+				// if not next to enemy king:
+				if (!(abs(new_square.rank-enemy_king_square.rank)<=1 && abs(new_square.file-enemy_king_square.file)<=1)) {
+					// if square not controlled:
+					if (attacking_squares(new_square, !turn, true).empty()) {
+						if (!is_piece_at(new_square)) {
+							Move new_move(king_square, new_square, 0, false, king);
+							result.push_back(new_move);
+						}
+						else {
+							Move new_move(king_square, new_square, 0, true, king, piece_at(new_square));
+							result.push_back(new_move);
+						}
+					}
+				}
+			}
+		}
+		put_piece(king, king_square);
+		
+	}
 	
 	return result;
 	
 }
 
-void Board::get_FEN(std::string FEN) {
+void Board::get_FEN(std::string FEN)
+{
 	
 	// set bitboards to zero:
 	for (int i = 0; i < NO_OF_TYPES; i++) {
@@ -465,5 +489,50 @@ void Board::get_FEN(std::string FEN) {
 		}
 		
 	}
+	
+}
+
+std::string Board::move_to_str(Move move)
+{
+	
+	std::string result;
+	Piece moving_piece = move.get_piece();
+	Square initial_square = move.get_initial_position();
+	Square final_square = move.get_final_position();
+	int move_type = move.get_move_type();
+	
+	result += (std::to_string(move_number) + ". ");
+	if (!piece_at_side(initial_square)) {
+		result += "...";
+	}
+	
+	if (move_type == 0 || move_type == 1 || move_type == 4) {
+		if (moving_piece%6 == 0 && move.is_piece_taken()) {
+			result += file_to_char[initial_square.file];
+		}
+		if (moving_piece%6 != 0) {
+			result += type_to_char(moving_piece);
+		}
+		if (moving_piece%6 == 1) {
+			// check if move is degenerate in knights:
+			for (int i = 0; i < 8; i++) {
+				Square possible_knight_position = {final_square.rank + move_vectors[1][i].rank, final_square.file + move_vectors[1][i].file};
+				if (!(possible_knight_position.rank == initial_square.rank && possible_knight_position.file == initial_square.file)) {
+					if (on_board(possible_knight_position) && piece_at(possible_knight_position)%6 == 1 && piece_at_side(possible_knight_position) == piece_at_side(initial_square)) {
+						if (possible_knight_position.file == initial_square.file) {
+							result += rank_to_char[initial_square.rank];
+							break;
+						}
+						else {
+							result += file_to_char[initial_square.file];
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return result;
 	
 }
