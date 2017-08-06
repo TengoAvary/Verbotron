@@ -31,7 +31,7 @@ const std::vector<Square> Board::move_vectors[12] {{},
 
 const bool Board::is_limited[12] {true, true, false, false, false, true, true, true, false, false, false, true};
 
-const Square Board::direction_to_vector[8] {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1-1}};
+const Square Board::direction_to_vector[8] {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
 
 const bool Board::is_attacking[12][8] {{false, false, false, false, false, false, false, false},
 										{false, false, false, false, false, false, false ,false},
@@ -250,6 +250,10 @@ void Board::print()
     
 }
 
+bool Board::is_in(Square square, std::vector<Square> vector) {
+	return (std::find(vector.begin(), vector.end(), square) != vector.end());
+}
+
 std::vector<Square> Board::look_along(Square initial_square, int direction, int N)
 {
 	
@@ -283,7 +287,7 @@ std::vector<Square> Board::attacking_squares(Square square, bool side, bool taki
 	
 	std::vector<Square> result;
 	
-	// look in each direction out from square
+	// look in each direction out from square:
 	for (int direction = 0; direction<8; direction++) {
 		std::vector<Square> look = look_along(square, direction, 1);
 		if (!look.empty()) {
@@ -291,6 +295,45 @@ std::vector<Square> Board::attacking_squares(Square square, bool side, bool taki
 			if (is_piece_at(attacking_square) && piece_at_side(attacking_square) == side && is_attacking[piece_at(attacking_square)][direction]) {
 				result.push_back({attacking_square.rank, attacking_square.file, direction});
 			}
+		}
+	}
+	
+	// check for knights:
+	for (int i = 0; i<4; i++) {
+		Square attacking_square {square.rank + move_vectors[WHITE_KNIGHT][i].rank, square.file + move_vectors[WHITE_KNIGHT][i].file};
+		if (on_board(attacking_square) && piece_at(attacking_square) == (side ? WHITE_KNIGHT : BLACK_KNIGHT)) {
+			result.push_back(attacking_square);
+		}
+	}
+	
+	// check for pawns:
+	if (taking) {
+		int rank {side ? -1 : 1};
+		for (int file = -1; file<2; file+=2) {
+			Square attacking_square {square.rank + rank, square.file + file};
+			if (on_board(attacking_square) && piece_at(attacking_square) == (side ? WHITE_PAWN : BLACK_PAWN)) {
+				result.push_back(attacking_square);
+			}
+		}
+	}
+	else {
+		// initial pawn advance:
+		if (side && square.rank == 3) {
+			Square attacking_square {1, square.file};
+			if (piece_at(attacking_square) == WHITE_PAWN) {
+				result.push_back(attacking_square);
+			}
+		}
+		else if (!side && square.rank == 4) {
+			Square attacking_square {6, square.file};
+			if (piece_at(attacking_square) == BLACK_PAWN) {
+				result.push_back(attacking_square);
+			}
+		}
+		// normal pawn move:
+		Square attacking_square {square.rank + (side ? -1 : 1), square.file};
+		if (on_board(attacking_square) && piece_at(attacking_square) == (side ? WHITE_PAWN : BLACK_PAWN)) {
+			result.push_back(attacking_square);
 		}
 	}
 	
@@ -358,7 +401,7 @@ std::vector<Move> Board::get_moves()
 	if(in_check) {
 		
 		// king moves:
-		remove_piece(king_square);   // WHY IS THIS HERE???
+		remove_piece(king_square);
 		for (int i = 0; i<8; i++) {
 			Square new_square {king_square.rank + move_vectors[king][i].rank, king_square.file + move_vectors[king][i].file};
 			if (on_board(new_square) && (!is_piece_at(new_square) || piece_at_side(new_square) != turn)) {
@@ -379,6 +422,15 @@ std::vector<Move> Board::get_moves()
 			}
 		}
 		put_piece(king, king_square);
+		
+		// take the attacking piece:
+		if (king_attackers.size() == 1) {
+			Square king_attacker = king_attackers[0];
+			std::vector<Square> king_attacker_attackers = attacking_squares(king_attacker, turn, true);
+			for (int i = 0; i<king_attacker_attackers.size(); i++) {
+				
+			}
+		}
 		
 	}
 	
@@ -511,10 +563,10 @@ std::string Board::move_to_str(Move move)
 			result += file_to_char[initial_square.file];
 		}
 		if (moving_piece%6 != 0) {
-			result += type_to_char(moving_piece);
+			result += type_to_char(moving_piece%6);
 		}
+		// check if move is degenerate in knights:
 		if (moving_piece%6 == 1) {
-			// check if move is degenerate in knights:
 			for (int i = 0; i < 8; i++) {
 				Square possible_knight_position = {final_square.rank + move_vectors[1][i].rank, final_square.file + move_vectors[1][i].file};
 				if (!(possible_knight_position.rank == initial_square.rank && possible_knight_position.file == initial_square.file)) {
@@ -531,6 +583,40 @@ std::string Board::move_to_str(Move move)
 				}
 			}
 		}
+		// check if move is degenerate in rooks:
+		if (moving_piece%6 == 3) {
+			for (int direction = 0; direction<8; direction+=2) {
+				std::vector<Square> look = look_along(final_square, direction, 1);
+				if (!look.empty()) {
+					Square possible_rook_position = look.back();
+					if (!(possible_rook_position.rank == initial_square.rank && possible_rook_position.file == initial_square.file)) {
+						if (piece_at(possible_rook_position)%6 == 3 && piece_at_side(possible_rook_position) == piece_at_side(initial_square)) {
+							if (possible_rook_position.file == initial_square.file) {
+								result += rank_to_char[initial_square.rank];
+							}
+							else {
+								result += file_to_char[initial_square.file];
+							}
+						}
+					}
+				}
+			}
+		}
+		if (move.is_piece_taken()) {
+			result += 'x';
+		}
+		result += file_to_char[final_square.file];
+		result += rank_to_char[final_square.rank];
+		if (move_type == 1) {
+			result += '=';
+			result += type_to_char(move.get_promotion_piece());
+		}
+	}
+	else if (move_type == 2) {
+		result += "O-O";
+	}
+	else if (move_type == 3) {
+		result += "O-O-O";
 	}
 	
 	return result;

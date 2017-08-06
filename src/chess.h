@@ -29,16 +29,8 @@ enum Piece {
     
 };
 
-struct Square {
-	
-	int rank;
-	int file;
-	int direction; // used in get_moves function
-	
-};
-
+#include "square.h"
 #include "move.h"
 #include "board.h"
-
 
 #endif /* chess_h */

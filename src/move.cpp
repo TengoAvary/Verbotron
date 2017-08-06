@@ -45,3 +45,8 @@ bool Move::is_piece_taken()
 {
 	return piece_taken;
 }
+
+Piece Move::get_promotion_piece()
+{
+	return promotion_piece;
+}

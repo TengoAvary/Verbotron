@@ -54,6 +54,9 @@ public:
 	bool is_piece_taken();
 	// returns 'piece_taken'
 	
+	Piece get_promotion_piece();
+	// returns 'promotion_piece'
+	
 };
 
 #endif /* move_h */
