@@ -39,6 +39,9 @@ private:
     
     bool can_black_castle_queenside;
     
+	static bool on_board(int rank, int file);
+	// is ('rank', 'file') a legitimate board square?
+	
     static bool on_board(Square square);
     // is 'square' a legitimate board square?
     
@@ -54,7 +57,7 @@ public:
     // constructor
 	
 	static const std::vector<Square> move_vectors[12];
-	// contains move vectors for all the pieces, if applicable.
+	// contains move vectors for all the pieces, if applicable, and the direction of the move (for knights this is -1, the 'null' direction).
 	
 	static const bool is_limited[12];
 	// whether each piece can move arbitrarily far.
@@ -69,10 +72,10 @@ public:
 	// turns int rank into human-readable char
 	
 	static const char file_to_char[8];
-	// turns int file into human-readable char
+	// turns int file into human-readable char.
 	
     Square find_piece(Piece type);
-	// scans along the bit string type and returns the positions of the first piece it finds.
+	// scans along the bit string type and returns the position of the first piece it finds.
 	// especially useful for locating the king, since there can be only one of them.
     
     Piece piece_at(Square square);
@@ -82,34 +85,43 @@ public:
 	// returns the piece type at {'rank', 'file'} and 12 if there is no piece there.
     
     bool is_piece_at(Piece type, int rank, int file);
-    // returns true if piece 'type' is at ('rank', 'file'), false otherwise
+    // returns true if piece 'type' is at ('rank', 'file'), false otherwise.
     
+	bool is_piece_at(int rank, int file);
+	// returns true if any piece is at ('rank', 'file'), false otherwise.
+	
 	bool is_piece_at(Square square);
 	// return true if any piece is at 'square', false otherwise.
 	
     bool is_piece_at(Piece type, int64_t bit);
-    // returns true if piece 'type' is at 'bit' position
+    // returns true if piece 'type' is at 'bit' position.
     
     void put_piece(Piece type, int rank, int file);
-    // puts piece 'type' at ('rank', 'file')
+    // puts piece 'type' at ('rank', 'file').
     
 	void put_piece(Piece type, Square square);
-	// puts piece 'type' at 'square'
+	// puts piece 'type' at 'square'.
 	
     void remove_piece(int rank, int file);
-    // removes piece (any type) from ('rank', 'file')
+    // removes piece (any type) from ('rank', 'file').
     
 	void remove_piece(Square square);
-	// remove piece (any type) from 'square'
+	// remove piece (any type) from 'square'.
+	
+	bool piece_at_side(int rank, int file);
+	// returns the side of the piece at ('rank', 'file').
 	
 	bool piece_at_side(Square square);
-	// returns the side of the piece at 'square'
+	// returns the side of the piece at 'square'.
 	
     void print();
-    // prints board
+    // prints board.
+	
+	Square sq(int rank, int file);
+	// returns the square ('rank', 'file').s
 	
 	bool is_in(Square square, std::vector<Square> vector);
-	// just a shortcut for checking whether 'vector' contains 'square'
+	// just a shortcut for checking whether 'vector' contains 'square'.
 	
 	std::vector<Square> look_along(Square initial_square, int direction, int N);
 	// returns a vector of all the squares in a certain 'direction' looking out from 'initial_square'.
@@ -125,13 +137,16 @@ public:
 	// Includes the direction from which the attack is coming.
 	
 	std::vector<Move> get_moves();
-	// returns a vector containing all possible moves in the current position
+	// returns a vector containing all possible moves in the current position.
     
+	void make_move(Move move);
+	// makes 'move', updates board position.
+	
 	void get_FEN(std::string FEN);
 	// Reads in FEN string and arranges the board accordingly.
 	
 	std::string move_to_str(Move move);
-	// Returns the string for 'move' in ordinary notation
+	// Returns the string for 'move' in ordinary notation.
 	
 };
 
