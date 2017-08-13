@@ -32,5 +32,6 @@ enum Piece {
 #include "square.h"
 #include "move.h"
 #include "board.h"
+#include "mind.h"
 
 #endif /* chess_h */

@@ -102,6 +102,11 @@ int Board::coor_to_bit_position(int r, int c)
     
 }
 
+bool Board::get_turn()
+{
+	return turn;
+}
+
 Square Board::find_piece(Piece type)
 {
 
@@ -276,14 +281,15 @@ void Board::print()
     
 }
 
-Square Board::sq(int rank, int file) {
+Square Board::sq(int rank, int file)
+{
 	
 	Square result {rank, file};
 	return result;
 	
 }
 
-bool Board::is_in(Square square, std::vector<Square> vector)
+bool Board::is_in(Square square, const std::vector<Square> &vector)
 {
 	return (std::find(vector.begin(), vector.end(), square) != vector.end());
 }
@@ -656,11 +662,16 @@ std::vector<Move> Board::get_moves()
 		
 	}
 	
+	if (result.empty() && !in_check) {
+		Move null_move({0,0}, {0,0}, 5, false);
+		result.push_back(null_move);
+	}
+	
 	return result;
 	
 }
 
-void Board::make_move(Move move)
+void Board::make_move(Move &move)
 {
 	
 	// check king is not taken:
@@ -853,7 +864,7 @@ void Board::get_FEN(std::string FEN)
 	
 }
 
-std::string Board::move_to_str(Move move)
+std::string Board::move_to_str(Move &move)
 {
 	
 	std::string result;
@@ -927,6 +938,12 @@ std::string Board::move_to_str(Move move)
 	else if (move_type == 3) {
 		result += "O-O-O";
 	}
+	
+	else if (move_type == 5) {
+		result += "NULL_MOVE";
+	}
+	
+	result += "\n";
 	
 	return result;
 	

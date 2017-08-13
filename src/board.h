@@ -74,6 +74,9 @@ public:
 	static const char file_to_char[8];
 	// turns int file into human-readable char.
 	
+	// returns the current turn.
+	bool get_turn();
+	
     Square find_piece(Piece type);
 	// scans along the bit string type and returns the position of the first piece it finds.
 	// especially useful for locating the king, since there can be only one of them.
@@ -120,7 +123,7 @@ public:
 	Square sq(int rank, int file);
 	// returns the square ('rank', 'file').s
 	
-	bool is_in(Square square, std::vector<Square> vector);
+	bool is_in(Square square, const std::vector<Square> &vector);
 	// just a shortcut for checking whether 'vector' contains 'square'.
 	
 	std::vector<Square> look_along(Square initial_square, int direction, int N);
@@ -139,13 +142,13 @@ public:
 	std::vector<Move> get_moves();
 	// returns a vector containing all possible moves in the current position.
     
-	void make_move(Move move);
+	void make_move(Move &move);
 	// makes 'move', updates board position.
 	
 	void get_FEN(std::string FEN);
 	// Reads in FEN string and arranges the board accordingly.
 	
-	std::string move_to_str(Move move);
+	std::string move_to_str(Move &move);
 	// Returns the string for 'move' in ordinary notation.
 	
 };

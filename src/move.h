@@ -20,7 +20,7 @@ private:
     Square final_position;
 	
     int move_type;  
-	// 0 - normal move, 1 - promotion, 2 - castle kingside, 3 - castle queenside, 4 en passant
+	// 0 - normal move, 1 - promotion, 2 - castle kingside, 3 - castle queenside, 4 en passant, 5 null (used to signify stalemate)
 	
 	bool piece_taken;
 	
