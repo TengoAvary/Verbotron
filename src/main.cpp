@@ -11,8 +11,6 @@ int main(int argc, const char * argv[]) {
 	Board board;
 	Mind mind;
 	
-	board.get_FEN("1n4nr/1pq2k1p/5p2/5N2/2P1Q1p1/rP2P1P1/P4P1K/R4R2 b - - 0 26");
-	
 	board.print();
 	
 	std::string user_input;
