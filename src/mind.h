@@ -21,7 +21,7 @@ private:
 	static const int piece_value[12];
 	
 	Move best_move;
-	
+
 public:
 
 	Mind();

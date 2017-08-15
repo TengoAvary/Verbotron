@@ -46,7 +46,6 @@ int main(int argc, const char * argv[]) {
 			board.make_move(best);
 			board.print();
 		}
-		
 		else if (user_input == "x") {
 			return 0;
 		}
