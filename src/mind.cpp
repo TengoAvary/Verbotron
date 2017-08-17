@@ -58,7 +58,7 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alph
 	
 	if (side) {
 		int v = -1000;
-		for (int i = 0; i<moves.size(); i++) {
+		for (unsigned int i = 0; i<moves.size(); i++) {
 			Board new_board(board);
 			new_board.make_move(moves[i]);
 			std::vector<Move> new_moves = new_board.get_moves();
@@ -77,7 +77,7 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alph
 	}
 	else {
 		int v = 1000;
-		for (int i = 0; i<moves.size(); i++) {
+		for (unsigned int i = 0; i<moves.size(); i++) {
 			Board new_board(board);
 			new_board.make_move(moves[i]);
 			std::vector<Move> new_moves = new_board.get_moves();

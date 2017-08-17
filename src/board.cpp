@@ -12,6 +12,7 @@
 #include <set>
 #include <cassert>
 #include <algorithm>
+#include <cstdlib>
 
 
 #include "chess.h"
@@ -52,11 +53,13 @@ const char Board::rank_to_char[8] {'1', '2', '3', '4', '5', '6', '7', '8'};
 
 const char Board::file_to_char[8] {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 
-bool Board::on_board(int rank, int file) {
+bool Board::on_board(int rank, int file)
+{
 	return !(rank < 0 || rank >= 8 || file < 0 || file >= 8);
 }
 
-bool Board::on_board(Square square) {
+bool Board::on_board(Square square)
+{
     return !(square.rank < 0 || square.rank >= 8 || square.file < 0 || square.file >= 8);
 }
 
@@ -72,27 +75,50 @@ Board::Board()
     can_black_castle_kingside {true},
     can_black_castle_queenside {true}
 {
+	
+	// initialise hash longs
+	for (int rank = 0; rank<8; rank++) {
+		for (int file = 0; file<8; file++) {
+			for (int type = 0; type<12; type++) {
+				hash_pieces[rank][file][type] = rand64();
+			}
+		}
+	}
+	for (int i = 0; i<4; i++) {
+		hash_castling[i] = rand64();
+	}
+	hash_to_move = rand64();
+	
     // then set up the board
-    put_piece(WHITE_ROOK, 0, 0);
-    put_piece(WHITE_KNIGHT, 0, 1);
-    put_piece(WHITE_BISHOP, 0, 2);
-    put_piece(WHITE_QUEEN, 0, 3);
-    put_piece(WHITE_KING, 0, 4);
-    put_piece(WHITE_BISHOP, 0, 5);
-    put_piece(WHITE_KNIGHT, 0, 6);
-    put_piece(WHITE_ROOK, 0, 7);
-    put_piece(BLACK_ROOK, 7, 0);
-    put_piece(BLACK_KNIGHT, 7, 1);
-    put_piece(BLACK_BISHOP, 7, 2);
-    put_piece(BLACK_QUEEN, 7, 3);
-    put_piece(BLACK_KING, 7, 4);
-    put_piece(BLACK_BISHOP, 7, 5);
-    put_piece(BLACK_KNIGHT, 7, 6);
-    put_piece(BLACK_ROOK, 7, 7);
+    toggle_piece(WHITE_ROOK, 0, 0);
+    toggle_piece(WHITE_KNIGHT, 0, 1);
+    toggle_piece(WHITE_BISHOP, 0, 2);
+    toggle_piece(WHITE_QUEEN, 0, 3);
+    toggle_piece(WHITE_KING, 0, 4);
+    toggle_piece(WHITE_BISHOP, 0, 5);
+    toggle_piece(WHITE_KNIGHT, 0, 6);
+    toggle_piece(WHITE_ROOK, 0, 7);
+    toggle_piece(BLACK_ROOK, 7, 0);
+    toggle_piece(BLACK_KNIGHT, 7, 1);
+    toggle_piece(BLACK_BISHOP, 7, 2);
+    toggle_piece(BLACK_QUEEN, 7, 3);
+    toggle_piece(BLACK_KING, 7, 4);
+    toggle_piece(BLACK_BISHOP, 7, 5);
+    toggle_piece(BLACK_KNIGHT, 7, 6);
+    toggle_piece(BLACK_ROOK, 7, 7);
     for (int file = 0; file<8; file++) {
-        put_piece(WHITE_PAWN, 1, file);
-        put_piece(BLACK_PAWN, 6, file);
+        toggle_piece(WHITE_PAWN, 1, file);
+        toggle_piece(BLACK_PAWN, 6, file);
     }
+	
+	hash = generate_hash();
+	
+}
+
+uint64_t Board::rand64()
+{
+        return (static_cast<uint64_t>(rand()) << 32) | rand();
+
 }
 
 int Board::coor_to_bit_position(int r, int c)
@@ -213,36 +239,32 @@ bool Board::is_piece_at(Piece type, int64_t bit)
     
 }
 
-void Board::put_piece(Piece type, int rank, int file)
+void Board::toggle_piece(Piece type, int rank, int file)
 {
     
-    board[type] |= uint64_t(1) << coor_to_bit_position(rank, file);
+    board[type] ^= uint64_t(1) << coor_to_bit_position(rank, file);
+	hash ^= hash_pieces[rank][file][type];
     
+}
+
+void Board::put_piece(Piece type, int rank, int file)
+{
+	toggle_piece(type, rank, file);
 }
 
 void Board::put_piece(Piece type, Square square)
 {
-	
-	board[type] |= uint64_t(1) << coor_to_bit_position(square.rank, square.file);
-	
+	toggle_piece(type, square.rank, square.file);
 }
 
 void Board::remove_piece(int rank, int file)
 {
-    
-    for(int i = 0; i<NO_OF_TYPES; i++) {
-        board[i] -= board[i] & (uint64_t(1)<<coor_to_bit_position(rank,file));
-    }
-    
+	toggle_piece(piece_at(rank, file), rank, file);
 }
 
 void Board::remove_piece(Square square)
 {
-	
-	for(int i = 0; i<NO_OF_TYPES; i++) {
-        board[i] -= board[i] & (uint64_t(1)<<coor_to_bit_position(square.rank, square.file));
-    }
-	
+	toggle_piece(piece_at(square), square.rank, square.file);
 }
 
 bool Board::piece_at_side(int rank, int file)
@@ -399,7 +421,7 @@ std::vector<Square> Board::find_constrained_squares()
 			// Find blocking piece:
 			Square blocking_square;
 			bool blocking_piece_is_side = false;
-			for (int n = 0; n<king_line.size()-1; n++) {
+			for (unsigned int n = 0; n<king_line.size()-1; n++) {
 				if (is_piece_at(king_line[n]) && piece_at_side(king_line[n]) == turn) {
 					blocking_square = king_line[n];
 					blocking_piece_is_side = true;
@@ -467,7 +489,7 @@ std::vector<Move> Board::get_moves()
 			// take the attacking piece:
 			Square king_attacker = king_attackers[0];
 			std::vector<Square> king_attacker_attackers = attacking_squares(king_attacker, turn, true);
-			for (int i = 0; i<king_attacker_attackers.size(); i++) {
+			for (unsigned int i = 0; i<king_attacker_attackers.size(); i++) {
 				if (!is_in(king_attacker_attackers[i], constrained_squares)) {
 					Move new_move(king_attacker_attackers[i], king_attacker, 0, true);
 					result.push_back(new_move);
@@ -490,9 +512,9 @@ std::vector<Move> Board::get_moves()
 				std::vector<Square> look = look_along(king_square, king_attacker.direction, 1);
 				// remove the last square -- should be king_attacker:
 				look.pop_back();
-				for (int i = 0; i<look.size(); i++) {
+				for (unsigned int i = 0; i<look.size(); i++) {
 					std::vector<Square> blockers = attacking_squares(look[i], turn, false);
-					for (int j = 0; j<blockers.size(); j++) {
+					for (unsigned int j = 0; j<blockers.size(); j++) {
 						if (!is_in(blockers[j], constrained_squares)) {
 							Move new_move(blockers[j], look[i], 0, false);
 							result.push_back(new_move);
@@ -585,7 +607,7 @@ std::vector<Move> Board::get_moves()
 					}
 					// all other pieces except the king:
 					else if (moving_piece%6 != 5) {
-						for (int mv = 0; mv<move_vectors[moving_piece].size(); mv++) {
+						for (unsigned int mv = 0; mv<move_vectors[moving_piece].size(); mv++) {
 							Square move_vector = move_vectors[moving_piece][mv];
 							for (int n = 1; n<8; n++) {
 								if (is_limited[moving_piece] && n>1) {
@@ -674,11 +696,14 @@ std::vector<Move> Board::get_moves()
 void Board::make_move(Move &move)
 {
 	
+	Square initial_position = move.get_initial_position();
+	Square final_position = move.get_final_position();
+	
 	// check king is not taken:
-	assert(piece_at(move.get_final_position())%6 != 5 && "King taken!");
+	assert(piece_at(final_position)%6 != 5 && "King taken!");
 	
 	// update halfmove number:
-	if (piece_at(move.get_initial_position())%6 == 0 || move.is_piece_taken()) {
+	if (piece_at(initial_position)%6 == 0 || move.is_piece_taken()) {
 		half_move_number = 0;
 	}
 	else {
@@ -688,16 +713,22 @@ void Board::make_move(Move &move)
 	// update castling rights if king or rooks are moved (also will work when the move itself is castling):
 	bool &kingside = (turn ? can_white_castle_kingside : can_black_castle_kingside);
 	bool &queenside = (turn ? can_white_castle_queenside : can_black_castle_queenside);
+	uint64_t &hash_kingside = (turn ? hash_castling[0] : hash_castling[2]);
+	uint64_t &hash_queenside = (turn ? hash_castling[1] : hash_castling[3]);
 	int rank = (turn ? 0 : 7);
-	if (move.get_initial_position() == sq(rank, 4) && piece_at(move.get_initial_position())%6 == 5 && (kingside || queenside)) {
+	if (initial_position == sq(rank, 4) && piece_at(initial_position)%6 == 5 && (kingside || queenside)) {
 		kingside = false;
 		queenside = false;
+		hash ^= hash_kingside;
+		hash ^= hash_queenside;
 	}
 	else if (move.get_initial_position() == sq(rank, 0) && piece_at(move.get_initial_position())%6 == 3 && queenside) {
 		queenside = false;
+		hash ^= hash_queenside;
 	}
-	else if (move.get_initial_position() == sq(rank, 7) && piece_at(move.get_initial_position())%6 == 3 && kingside) {
+	else if (initial_position == sq(rank, 7) && piece_at(initial_position)%6 == 3 && kingside) {
 		kingside = false;
+		hash ^= hash_kingside;
 	}
 	
 	en_passantable = false;
@@ -705,15 +736,15 @@ void Board::make_move(Move &move)
 	// ordinary move:
 	if (move.get_move_type() == 0) {
 		if (move.is_piece_taken()) {
-			remove_piece(move.get_final_position());
+			remove_piece(final_position);
 		}
-		put_piece(piece_at(move.get_initial_position()), move.get_final_position());
-		remove_piece(move.get_initial_position());
+		put_piece(piece_at(initial_position), final_position);
+		remove_piece(initial_position);
 		// check whether en passant will be possible next turn:
-		if (piece_at(move.get_final_position())%6 == 0) {
-			if (move.get_final_position().rank == move.get_final_position().rank + (turn ? 2 : -2)) {
+		if (piece_at(final_position)%6 == 0) {
+			if (final_position.rank == final_position.rank + (turn ? 2 : -2)) {
 				en_passantable = true;
-				en_passant_square = {move.get_final_position().rank + (turn ? -1 : 1), move.get_final_position().file};
+				en_passant_square = {final_position.rank + (turn ? -1 : 1), final_position.file};
 			}
 		}
 	}
@@ -721,10 +752,10 @@ void Board::make_move(Move &move)
 	// pawn promotion:
 	else if (move.get_move_type() == 1) {
 		if (move.is_piece_taken()) {
-			remove_piece(move.get_final_position());
+			remove_piece(final_position);
 		}
-		put_piece(move.get_promotion_piece(), move.get_final_position());
-		remove_piece(move.get_initial_position());
+		put_piece(move.get_promotion_piece(), final_position);
+		remove_piece(initial_position);
 	}
 	
 	// castle kingside:
@@ -745,12 +776,13 @@ void Board::make_move(Move &move)
 	
 	// en passant:
 	else if (move.get_move_type() == 4) {
-		put_piece(piece_at(move.get_initial_position()), move.get_final_position());
-		remove_piece(move.get_initial_position());
-		remove_piece({(turn ? 4 : 4), move.get_final_position().file});
+		put_piece(piece_at(initial_position), final_position);
+		remove_piece(initial_position);
+		remove_piece({(turn ? 4 : 4), final_position.file});
 	}
 	
 	turn = !turn;
+	hash ^= hash_to_move;
 	if (turn) {
 		move_number++;
 	}
@@ -777,7 +809,7 @@ void Board::get_FEN(std::string FEN)
 	int rank = 7;
 	int stage = 0;
 	
-	for (int i = 0; i<FEN.length(); i++) {
+	for (unsigned int i = 0; i<FEN.length(); i++) {
 		
 		x = FEN.at(i);
 		
@@ -861,6 +893,8 @@ void Board::get_FEN(std::string FEN)
 		}
 		
 	}
+	
+	hash = generate_hash();
 	
 }
 
@@ -947,4 +981,44 @@ std::string Board::move_to_str(Move &move)
 	
 	return result;
 	
+}
+
+// HASHING FUNCTIONS
+
+uint64_t Board::generate_hash()
+{
+	
+	uint64_t result = 0;
+	
+	for (int rank = 0; rank<8; rank++) {
+		for (int file = 0; file<8; file++) {
+			Piece piece_type = piece_at(rank, file);
+			if (piece_type != NO_OF_TYPES) {
+				result ^= hash_pieces[rank][file][piece_type];
+			}
+		}
+	}
+	if (can_white_castle_kingside) {
+		result ^= hash_castling[0];
+	}
+	if (can_white_castle_queenside) {
+		result ^= hash_castling[1];
+	}
+	if (can_black_castle_kingside) {
+		result ^= hash_castling[2];
+	}
+	if (can_black_castle_queenside) {
+		result ^= hash_castling[3];
+	}
+	if (!turn) {
+		result ^= hash_to_move;
+	}
+	
+	return result;
+	
+}
+
+uint64_t Board::get_hash()
+{
+	return hash;
 }

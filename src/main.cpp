@@ -12,14 +12,14 @@ int main(int argc, const char * argv[]) {
 	Mind mind;
 	
 	board.print();
-	
+
 	std::string user_input;
 	
 	while (true) {
 		std::getline(std::cin, user_input);
 		if (user_input == "l") {
 			std::vector<Move> moves = board.get_moves();
-			for (int i = 0; i<moves.size(); i++) {
+			for (unsigned int i = 0; i<moves.size(); i++) {
 				std::cout << "(" << i+1 << ") --" << (i<9 ? "  " : " ") << board.move_to_str(moves[i]);
 			}
 		}

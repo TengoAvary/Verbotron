@@ -50,6 +50,17 @@ private:
     
     static char type_to_char(int type);
     // prints the characters corresponding to piece 'type'
+	
+	// STUFF FOR HASHING:
+	// when a new board is initialised a new set of random longs is generated.
+	// when implenting a search, child boards will inherit these from parents, so hashes will not change.
+	// if the Mind needs to use the hashes, it can extract them from the current board.
+	
+	uint64_t hash;
+	
+	uint64_t hash_pieces[8][8][12];
+	uint64_t hash_to_move;
+	uint64_t hash_castling[4];
     
 public:
     
@@ -74,6 +85,9 @@ public:
 	static const char file_to_char[8];
 	// turns int file into human-readable char.
 	
+	// returns a random long (used for hashing).
+	static uint64_t rand64();
+	
 	// returns the current turn.
 	bool get_turn();
 	
@@ -85,7 +99,7 @@ public:
     // returns the piece type at 'square', and 12 if there is no piece there.
 	
 	Piece piece_at(int rank, int file);
-	// returns the piece type at {'rank', 'file'} and 12 if there is no piece there.
+	// returns the piece type at ('rank', 'file') and 12 if there is no piece there.
     
     bool is_piece_at(Piece type, int rank, int file);
     // returns true if piece 'type' is at ('rank', 'file'), false otherwise.
@@ -99,17 +113,20 @@ public:
     bool is_piece_at(Piece type, int64_t bit);
     // returns true if piece 'type' is at 'bit' position.
     
-    void put_piece(Piece type, int rank, int file);
-    // puts piece 'type' at ('rank', 'file').
-    
-	void put_piece(Piece type, Square square);
-	// puts piece 'type' at 'square'.
+    void toggle_piece(Piece type, int rank, int file);
+    // toggles piece 'type' at ('rank', 'file') -- updates hash.
 	
-    void remove_piece(int rank, int file);
-    // removes piece (any type) from ('rank', 'file').
-    
+	// put piece 'type' at ('rank', 'file').
+	void put_piece(Piece type, int rank, int file);
+	
+	// put piece 'type' at 'square'
+	void put_piece(Piece type, Square square);
+	
+	// remove piece at ('rank', 'file').
+	void remove_piece(int rank, int file);
+	
+	// remove piece at 'square'.
 	void remove_piece(Square square);
-	// remove piece (any type) from 'square'.
 	
 	bool piece_at_side(int rank, int file);
 	// returns the side of the piece at ('rank', 'file').
@@ -143,13 +160,21 @@ public:
 	// returns a vector containing all possible moves in the current position.
     
 	void make_move(Move &move);
-	// makes 'move', updates board position.
+	// makes 'move', updates board position and hash.
 	
 	void get_FEN(std::string FEN);
 	// Reads in FEN string and arranges the board accordingly.
 	
 	std::string move_to_str(Move &move);
 	// Returns the string for 'move' in ordinary notation.
+	
+	// HASHING FUNCTIONS
+	
+	// generate the hash for the current board. should only be used for new boards.
+	uint64_t generate_hash();
+	
+	// returns the board's current hash.
+	uint64_t get_hash();
 	
 };
 
