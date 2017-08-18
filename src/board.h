@@ -17,8 +17,8 @@ class Board {
     
 private:
     
+	// bit boards, one for each piece type
     uint64_t board[NO_OF_TYPES];
-    // bit boards, one for each piece type
 
     int move_number;
     
@@ -26,8 +26,8 @@ private:
 	
     bool turn;
     
+	// did a pawn move forward by two spaces on the previous turn
     bool en_passantable;
-    // did a pawn move forward by two spaces on the previous turn
     
     Square en_passant_square;
     
@@ -39,17 +39,17 @@ private:
     
     bool can_black_castle_queenside;
     
-	static bool on_board(int rank, int file);
 	// is ('rank', 'file') a legitimate board square?
+	static bool on_board(int rank, int file);
 	
+	// is 'square' a legitimate board square?
     static bool on_board(Square square);
-    // is 'square' a legitimate board square?
     
-	static int coor_to_bit_position(int r, int c);
 	// turns coordinate into bit position
+	static int coor_to_bit_position(int r, int c);
     
+	// prints the characters corresponding to piece 'type'
     static char type_to_char(int type);
-    // prints the characters corresponding to piece 'type'
 	
 	// STUFF FOR HASHING:
 	// when a new board is initialised a new set of random longs is generated.
@@ -64,26 +64,26 @@ private:
     
 public:
     
+	// constructor
     Board();
-    // constructor
 	
-	static const std::vector<Square> move_vectors[12];
 	// contains move vectors for all the pieces, if applicable, and the direction of the move (for knights this is -1, the 'null' direction).
+	static const std::vector<Square> move_vectors[12];
 	
-	static const bool is_limited[12];
 	// whether each piece can move arbitrarily far.
+	static const bool is_limited[12];
 	
-	static const bool is_attacking[12][8];
 	// whether each piece attacks in a given direction.
+	static const bool is_attacking[12][8];
 	
-	static const Square direction_to_vector[8];
 	// vectors pointing in each of the 8 directions.
+	static const Square direction_to_vector[8];
 	
+	// turns int rank into human-readable char.
 	static const char rank_to_char[8];
-	// turns int rank into human-readable char
 	
-	static const char file_to_char[8];
 	// turns int file into human-readable char.
+	static const char file_to_char[8];
 	
 	// returns a random long (used for hashing).
 	static uint64_t rand64();
@@ -91,30 +91,30 @@ public:
 	// returns the current turn.
 	bool get_turn();
 	
-    Square find_piece(Piece type);
 	// scans along the bit string type and returns the position of the first piece it finds.
 	// especially useful for locating the king, since there can be only one of them.
+    Square find_piece(Piece type);
     
+	// returns the piece type at 'square', and 12 if there is no piece there.
     Piece piece_at(Square square);
-    // returns the piece type at 'square', and 12 if there is no piece there.
 	
-	Piece piece_at(int rank, int file);
 	// returns the piece type at ('rank', 'file') and 12 if there is no piece there.
+	Piece piece_at(int rank, int file);
     
+	// returns true if piece 'type' is at ('rank', 'file'), false otherwise.
     bool is_piece_at(Piece type, int rank, int file);
-    // returns true if piece 'type' is at ('rank', 'file'), false otherwise.
     
-	bool is_piece_at(int rank, int file);
 	// returns true if any piece is at ('rank', 'file'), false otherwise.
+	bool is_piece_at(int rank, int file);
 	
-	bool is_piece_at(Square square);
 	// return true if any piece is at 'square', false otherwise.
+	bool is_piece_at(Square square);
 	
+	// returns true if piece 'type' is at 'bit' position.
     bool is_piece_at(Piece type, int64_t bit);
-    // returns true if piece 'type' is at 'bit' position.
     
+	// toggles piece 'type' at ('rank', 'file') -- updates hash.
     void toggle_piece(Piece type, int rank, int file);
-    // toggles piece 'type' at ('rank', 'file') -- updates hash.
 	
 	// put piece 'type' at ('rank', 'file').
 	void put_piece(Piece type, int rank, int file);
@@ -128,45 +128,45 @@ public:
 	// remove piece at 'square'.
 	void remove_piece(Square square);
 	
-	bool piece_at_side(int rank, int file);
 	// returns the side of the piece at ('rank', 'file').
+	bool piece_at_side(int rank, int file);
 	
-	bool piece_at_side(Square square);
 	// returns the side of the piece at 'square'.
+	bool piece_at_side(Square square);
 	
+	// prints board.
     void print();
-    // prints board.
 	
+	// returns the square ('rank', 'file').
 	Square sq(int rank, int file);
-	// returns the square ('rank', 'file').s
 	
-	bool is_in(Square square, const std::vector<Square> &vector);
 	// just a shortcut for checking whether 'vector' contains 'square'.
+	bool is_in(Square square, const std::vector<Square> &vector);
 	
-	std::vector<Square> look_along(Square initial_square, int direction, int N);
 	// returns a vector of all the squares in a certain 'direction' looking out from 'initial_square'.
 	// stops when it reaches the 'N'th square with a piece on.
+	std::vector<Square> look_along(Square initial_square, int direction, int N);
 	
-	std::vector<Square> attacking_squares(Square square, bool side, bool taking);
 	// returns a list of all pieces belonging to 'side' that can move to 'square'.
 	// if 'taking' is true, pieces move as if taking (difference is only for pawns).
 	// includes direction from which the attack is coming, but not for knights and pawns.
+	std::vector<Square> attacking_squares(Square square, bool side, bool taking);
 	
-	std::vector<Square> find_constrained_squares();
 	// Contains the positions of pieces which cannot move without exposing the king to check.
 	// Includes the direction from which the attack is coming.
+	std::vector<Square> find_constrained_squares();
 	
-	std::vector<Move> get_moves();
 	// returns a vector containing all possible moves in the current position.
+	std::vector<Move> get_moves();
     
-	void make_move(Move &move);
 	// makes 'move', updates board position and hash.
+	void make_move(Move &move);
 	
-	void get_FEN(std::string FEN);
 	// Reads in FEN string and arranges the board accordingly.
+	void get_FEN(std::string FEN);
 	
-	std::string move_to_str(Move &move);
 	// Returns the string for 'move' in ordinary notation.
+	std::string move_to_str(Move &move);
 	
 	// HASHING FUNCTIONS
 	
