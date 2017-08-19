@@ -11,6 +11,7 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include <unordered_map>
 
 #include "chess.h"
 
@@ -39,7 +40,21 @@ int Mind::board_value(Board &board)
 	
 }
 
-int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alpha, int beta, bool side)
+void Mind::store(Board &board, int depth, int value)
+{
+	
+	uint64_t board_hash = board.get_hash();
+	auto it = hash_table.find(board_hash);
+	if (it == hash_table.end()) {
+		hash_table.insert({board_hash, std::make_tuple(depth, value)});
+	}
+	else if (std::get<0>(hash_table[board_hash]) < depth) {
+		hash_table[board_hash] = std::make_tuple(depth, value);
+	}
+	
+}
+
+int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int main_depth, int alpha, int beta, bool side)
 {
 	
 	// check for checkmate:
@@ -62,7 +77,7 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alph
 			Board new_board(board);
 			new_board.make_move(moves[i]);
 			std::vector<Move> new_moves = new_board.get_moves();
-			int new_v = alpha_beta(new_board, new_moves, depth-1, alpha, beta, false);
+			int new_v = alpha_beta(new_board, new_moves, depth-1, main_depth, alpha, beta, false);
 			if (new_v > v) {
 				v = new_v;
 				best_move_inner = moves[i];
@@ -72,7 +87,11 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alph
 				break;
 			}
 		}
-		best_move = best_move_inner;
+		if (depth == main_depth) {
+			best_move = best_move_inner;
+		}
+		// save board value to hash_table:
+		store(board, depth, v);
 		return v;
 	}
 	else {
@@ -81,7 +100,7 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alph
 			Board new_board(board);
 			new_board.make_move(moves[i]);
 			std::vector<Move> new_moves = new_board.get_moves();
-			int new_v = alpha_beta(new_board, new_moves, depth-1, alpha, beta, true);
+			int new_v = alpha_beta(new_board, new_moves, depth-1, main_depth, alpha, beta, true);
 			if (new_v < v) {
 				v = new_v;
 				best_move_inner = moves[i];
@@ -91,7 +110,11 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int alph
 				break;
 			}
 		}
-		best_move = best_move_inner;
+		if (depth == main_depth) {
+			best_move = best_move_inner;
+		}
+		// save board value to hash_table:
+		store(board, depth, v);
 		return v;
 	}
 	
@@ -101,7 +124,7 @@ Move Mind::best_move_alpha_beta(Board &board, int depth)
 {
 	
 	std::vector<Move> moves = board.get_moves();
-	alpha_beta(board, moves, depth, -1000, 1000, board.get_turn());
+	alpha_beta(board, moves, depth, depth, -1000, 1000, board.get_turn());
 	return best_move;
 	
 }
