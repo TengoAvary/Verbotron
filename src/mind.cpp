@@ -59,13 +59,16 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int main
 	
 	// check for checkmate:
 	if (moves.empty()) {
+		store(board, depth, (side ? -1000 : 1000));
 		return (side ? -1000 : 1000);
 	}
 	// check for stalemate:
 	if (moves[0].get_move_type() == 5) {
+		store(board, depth, 0);
 		return 0;
 	}
 	if (depth == 0) {
+		store(board, 0, board_value(board));
 		return board_value(board);
 	}
 	
