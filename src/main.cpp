@@ -41,10 +41,13 @@ int main(int argc, const char * argv[]) {
 			board.print();
 		}
 		else if (user_input == "b") {
-			Move best = mind.best_move_alpha_beta(board, 6);
+			Move best = mind.best_move_alpha_beta(board, 1);
 			std::cout << board.move_to_str(best);
 			board.make_move(best);
 			board.print();
+		}
+		else if (user_input == "t") {
+			mind.best_move_deepening(board);
 		}
 		else if (user_input == "x") {
 			return 0;

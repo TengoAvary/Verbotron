@@ -53,6 +53,8 @@ const char Board::rank_to_char[8] {'1', '2', '3', '4', '5', '6', '7', '8'};
 
 const char Board::file_to_char[8] {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 
+const int Board::piece_value[12] {1, 3, 3, 5, 9, 1000, -1, -3, -3, -5, -9, -1000};
+
 bool Board::on_board(int rank, int file)
 {
 	return !(rank < 0 || rank >= 8 || file < 0 || file >= 8);
@@ -73,7 +75,8 @@ Board::Board()
     can_white_castle_kingside {true},
     can_white_castle_queenside {true},
     can_black_castle_kingside {true},
-    can_black_castle_queenside {true}
+    can_black_castle_queenside {true},
+	board_value {0}
 {
 	
 	// initialise hash longs
@@ -301,6 +304,11 @@ void Board::print()
         std::cout << '\n';
     }
     
+}
+
+int Board::get_value()
+{
+	return board_value;
 }
 
 Square Board::sq(int rank, int file)
@@ -736,6 +744,7 @@ void Board::make_move(Move &move)
 	// ordinary move:
 	if (move.get_move_type() == 0) {
 		if (move.is_piece_taken()) {
+			board_value -= piece_value[piece_at(final_position)];
 			remove_piece(final_position);
 		}
 		put_piece(piece_at(initial_position), final_position);
@@ -753,8 +762,11 @@ void Board::make_move(Move &move)
 	else if (move.get_move_type() == 1) {
 		if (move.is_piece_taken()) {
 			remove_piece(final_position);
+			board_value -= piece_value[piece_at(final_position)];
 		}
 		put_piece(move.get_promotion_piece(), final_position);
+		board_value -= piece_value[turn ? WHITE_PAWN : BLACK_PAWN];
+		board_value += piece_value[piece_at(final_position)];
 		remove_piece(initial_position);
 	}
 	
@@ -778,6 +790,7 @@ void Board::make_move(Move &move)
 	else if (move.get_move_type() == 4) {
 		put_piece(piece_at(initial_position), final_position);
 		remove_piece(initial_position);
+		board_value -= piece_value[turn ? BLACK_PAWN : WHITE_PAWN];
 		remove_piece({(turn ? 4 : 4), final_position.file});
 	}
 	

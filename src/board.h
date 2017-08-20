@@ -38,6 +38,9 @@ private:
     bool can_black_castle_kingside;
     
     bool can_black_castle_queenside;
+	
+	// naive board value.
+	int board_value;
     
 	// is ('rank', 'file') a legitimate board square?
 	static bool on_board(int rank, int file);
@@ -84,6 +87,9 @@ public:
 	
 	// turns int file into human-readable char.
 	static const char file_to_char[8];
+	
+	// relative values of the pieces.
+	static const int piece_value[12];
 	
 	// returns a random long (used for hashing).
 	static uint64_t rand64();
@@ -136,6 +142,9 @@ public:
 	
 	// prints board.
     void print();
+	
+	// returns board_value.
+	int get_value();
 	
 	// returns the square ('rank', 'file').
 	Square sq(int rank, int file);
