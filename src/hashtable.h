@@ -15,6 +15,8 @@ public:
 	
 	void update(uint64_t key, int depth, int value);
 	
+	int value(Board &board);
+	
 };
 
 #endif /* hashtable_h */
