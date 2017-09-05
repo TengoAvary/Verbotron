@@ -104,8 +104,12 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int main
 	
 }
 
-int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth, int main_depth, int alpha, int beta, bool side)
+int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth, int main_depth, int alpha, int beta, bool side, std::atomic<bool> *flag)
 {
+	
+	if (*flag) {
+		return 0;
+	}
 	
 	// check for checkmate:
 	if (moves.empty()) {
@@ -169,7 +173,7 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth,
 			Board new_board(board);
 			new_board.make_move(std::get<1>(move_values[i]));
 			std::vector<Move> new_moves = new_board.get_moves();
-			int new_v = alpha_beta(new_board, new_moves, depth-1, main_depth, alpha, beta, false);
+			int new_v = alpha_beta_ordering(new_board, new_moves, depth-1, main_depth, alpha, beta, false, flag);
 			if (new_v > v) {
 				v = new_v;
 				best_move_inner = std::get<1>(move_values[i]);
@@ -195,7 +199,7 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth,
 			Board new_board(board);
 			new_board.make_move(std::get<1>(move_values[i]));
 			std::vector<Move> new_moves = new_board.get_moves();
-			int new_v = alpha_beta(new_board, new_moves, depth-1, main_depth, alpha, beta, true);
+			int new_v = alpha_beta_ordering(new_board, new_moves, depth-1, main_depth, alpha, beta, true, flag);
 			if (new_v < v) {
 				v = new_v;
 				best_move_inner = std::get<1>(move_values[i]);
@@ -222,22 +226,23 @@ Move Mind::best_move_alpha_beta(Board &board, int depth)
 {
 	
 	std::vector<Move> moves = board.get_moves();
-	alpha_beta_ordering(board, moves, depth, depth, -1000, 1000, board.get_turn());
+	std::atomic<bool> x (true);
+	alpha_beta_ordering(board, moves, depth, depth, -1000, 1000, board.get_turn(), &x);
 	return best_move;
 	
 }
 
-void Mind::best_move_deepening(Board &board)
+void Mind::best_move_deepening(Board &board, std::atomic<bool> *flag)
 {
 	
 	std::vector<Move> moves = board.get_moves();
 	
 	int depth = 1;
-	while (true) {
+	while (!*flag) {
 		
 		std::cout << "depth = " << depth << "\n";
 		
-		alpha_beta_ordering(board, moves, depth, depth, -1000, 1000, board.get_turn());
+		alpha_beta_ordering(board, moves, depth, depth, -1000, 1000, board.get_turn(), flag);
 		
 		depth++;
 		

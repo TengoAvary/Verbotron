@@ -3,6 +3,9 @@
 #include <vector>
 #include <cassert>
 #include <algorithm>
+#include <thread>
+#include <ctime>
+#include <atomic>
 
 #include "chess.h"
 
@@ -47,7 +50,18 @@ int main(int argc, const char * argv[]) {
 			board.print();
 		}
 		else if (user_input == "t") {
-			mind.best_move_deepening(board);
+			Mind *mind_ptr = &mind;
+			std::atomic<bool> stop (false);
+			std::atomic<bool> *flag = &stop;
+			std::thread thinking(&Mind::best_move_deepening, mind_ptr, std::ref(board), flag);
+			while(!stop) {
+				std::cin >> user_input;
+				if (user_input == "x") {
+					stop = true;
+					std::cout << "Terminated.\n";
+				}
+			}
+			thinking.join();
 		}
 		else if (user_input == "x") {
 			return 0;
