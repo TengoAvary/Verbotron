@@ -25,6 +25,9 @@ private:
 	// Mind's current opinion on what the best move is.
 	Move best_move;
 	
+	// List of moves, ordered in preference of Mind's evaulation so far.
+	std::vector<Move> move_list;
+	
 	
 
 public:
@@ -38,13 +41,13 @@ public:
 	int alpha_beta(Board &board, std::vector<Move> &moves, int depth, int main_depth, int alpha, int beta, bool side);
 	
 	// returns the alpha-beta score of 'board' at search 'depth', ordering moves based on previous analyses
-	int alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth, int main_depth, int alpha, int beta, bool side, std::atomic<bool> *flag);
-	
-	// uses basic alpha beta pruning to 'depth' to find the best move
-	Move best_move_alpha_beta(Board &board, int depth);
+	int alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &move_value, int depth, int main_depth, int alpha, int beta, bool side, std::atomic<bool> *flag);
 	
 	// uses iterative deepening with move sorting to find the best move. Keeps thinking forever.
 	void best_move_deepening(Board &board, std::atomic<bool> *flag);
+	
+	// returns best_move, as stored in memory (doesn't calculate anything!)
+	Move &get_best_move();
 	
 };
 

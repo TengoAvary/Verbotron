@@ -4,8 +4,8 @@
 #include <cassert>
 #include <algorithm>
 #include <thread>
-#include <ctime>
 #include <atomic>
+#include <chrono>
 
 #include "chess.h"
 
@@ -43,25 +43,17 @@ int main(int argc, const char * argv[]) {
 			board.make_move(moves[move_choice-1]);
 			board.print();
 		}
-		else if (user_input == "b") {
-			Move best = mind.best_move_alpha_beta(board, 1);
-			std::cout << board.move_to_str(best);
-			board.make_move(best);
-			board.print();
-		}
 		else if (user_input == "t") {
 			Mind *mind_ptr = &mind;
 			std::atomic<bool> stop (false);
 			std::atomic<bool> *flag = &stop;
 			std::thread thinking(&Mind::best_move_deepening, mind_ptr, std::ref(board), flag);
-			while(!stop) {
-				std::cin >> user_input;
-				if (user_input == "x") {
-					stop = true;
-					std::cout << "Terminated.\n";
-				}
-			}
+			std::this_thread::sleep_for(std::chrono::seconds(60));
+			stop = true;
 			thinking.join();
+			std::cout << "BEST MOVE = " << board.move_to_str(mind.get_best_move());
+			board.make_move(mind.get_best_move());
+			board.print();
 		}
 		else if (user_input == "x") {
 			return 0;

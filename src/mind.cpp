@@ -104,20 +104,20 @@ int Mind::alpha_beta(Board &board, std::vector<Move> &moves, int depth, int main
 	
 }
 
-int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth, int main_depth, int alpha, int beta, bool side, std::atomic<bool> *flag)
+int Mind::alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &move_values, int depth, int main_depth, int alpha, int beta, bool side, std::atomic<bool> *flag)
 {
 	
 	if (*flag) {
-		return 0;
+		return 1000000;
 	}
 	
 	// check for checkmate:
-	if (moves.empty()) {
+	if (move_values.empty()) {
 		store(board, depth, (side ? -1000 : 1000));
 		return (side ? -1000 : 1000);
 	}
 	// check for stalemate:
-	if (moves[0].get_move_type() == 5) {
+	if (std::get<1>(move_values[0]).get_move_type() == 5) {
 		store(board, depth, 0);
 		return 0;
 	}
@@ -132,8 +132,118 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth,
 		return std::get<1>(hash_table[board_hash]);
 	}
 	
-	Move best_move_inner = moves[0];
+	Move best_move_inner = std::get<1>(move_values[0]);
 	
+	if (depth == main_depth) {
+		for (int i = 0; i<move_values.size(); i++) {
+			Board new_board(board);
+			new_board.make_move(std::get<1>(move_values[i]));
+			std::cout << std::get<0>(move_values[i]) << " " << board.move_to_str(std::get<1>(move_values[i]));
+		}
+	}
+	
+	if (side) {
+		int v = -1000;
+		for (unsigned int i = 0; i<move_values.size(); i++) {
+			Board new_board(board);
+			new_board.make_move(std::get<1>(move_values[i]));
+			std::vector<Move> new_moves = new_board.get_moves();
+			// sort possible moves by value stored in hash_table, or by their naive value
+			std::vector<std::tuple<int, Move>> new_move_values;
+			for (unsigned int move = 0; move<new_moves.size(); move++) {
+				Board new_board(board);
+				new_board.make_move(new_moves[move]);
+				uint64_t board_hash = new_board.get_hash();
+				auto it = hash_table.find(board_hash);
+				if (it != hash_table.end()) {
+					new_move_values.push_back(std::make_tuple(std::get<1>(hash_table[board_hash]), new_moves[move]));
+				}
+				else {
+					new_move_values.push_back(std::make_tuple(new_board.get_value(), new_moves[move]));
+				}
+			}
+			std::sort(begin(new_move_values), end(new_move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
+				return std::get<0>(t1) < std::get<0>(t2);
+			});
+			int new_v = alpha_beta_ordering(new_board, new_move_values, depth-1, main_depth, alpha, beta, false, flag);
+			std::get<0>(move_values[i]) = new_v;
+			if (new_v == 1000000) {
+				return 1000000;
+			}
+			if (new_v > v) {
+				v = new_v;
+				best_move_inner = std::get<1>(move_values[i]);
+				if (depth == main_depth) {
+					std::cout << board.move_to_str(best_move_inner);
+				}
+			}
+			alpha = std::max(alpha, v);
+			if (beta <= alpha) {
+				break;
+			}
+		}
+		// save board value to hash_table:
+		store(board, depth, v);
+		if (depth == main_depth) {
+			best_move = best_move_inner;
+		}
+		return v;
+	}
+	else {
+		int v = 1000;
+		for (unsigned int i = 0; i<move_values.size(); i++) {
+			Board new_board(board);
+			new_board.make_move(std::get<1>(move_values[i]));
+			std::vector<Move> new_moves = new_board.get_moves();
+			// sort possible moves by value stored in hash_table, or by their naive value
+			std::vector<std::tuple<int, Move>> new_move_values;
+			for (unsigned int move = 0; move<new_moves.size(); move++) {
+				Board new_board(board);
+				new_board.make_move(new_moves[move]);
+				uint64_t board_hash = new_board.get_hash();
+				auto it = hash_table.find(board_hash);
+				if (it != hash_table.end()) {
+					new_move_values.push_back(std::make_tuple(std::get<1>(hash_table[board_hash]), new_moves[move]));
+				}
+				else {
+					new_move_values.push_back(std::make_tuple(new_board.get_value(), new_moves[move]));
+				}
+			}
+			std::sort(begin(new_move_values), end(new_move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
+				return std::get<0>(t1) > std::get<0>(t2);
+			});
+			int new_v = alpha_beta_ordering(new_board, new_move_values, depth-1, main_depth, alpha, beta, true, flag);
+			std::get<0>(move_values[i]) = new_v;
+			if (new_v == 1000000) {
+				return 1000000;
+			}
+			if (new_v < v) {
+				v = new_v;
+				best_move_inner = std::get<1>(move_values[i]);
+				if (depth == main_depth) {
+					std::cout << board.move_to_str(best_move_inner);
+				}
+			}
+			beta = std::min(beta, v);
+			if (beta <= alpha) {
+				break;
+			}
+		}
+		// save board value to hash_table:
+		store(board, depth, v);
+		if (depth == main_depth) {
+			best_move = best_move_inner;
+		}
+		return v;
+	}
+	
+}
+
+void Mind::best_move_deepening(Board &board, std::atomic<bool> *flag)
+{
+	
+	hash_table.clear();
+	std::vector<Move> moves = board.get_moves();
 	// sort possible moves by value stored in hash_table, or by their naive value
 	std::vector<std::tuple<int, Move>> move_values;
 	for (unsigned int move = 0; move<moves.size(); move++) {
@@ -148,104 +258,32 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<Move> &moves, int depth,
 			move_values.push_back(std::make_tuple(new_board.get_value(), moves[move]));
 		}
 	}
-	if (side) {
-		std::sort(begin(move_values), end(move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
-			return std::get<0>(t1) > std::get<0>(t2);
-		});
-	}
-	else {
-		std::sort(begin(move_values), end(move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
-			return std::get<0>(t1) < std::get<0>(t2);
-		});
-	}
-	
-	//for(int i = 0; i<move_values.size(); i++) {
-	//	std::cout << std::get<0>(move_values[i]) << " " << board.move_to_str(std::get<1>(move_values[i])) << "\n";
-	//}
-	
-	if (depth == main_depth) {
-		std::cout << "considering " << std::get<0>(move_values[0]) << " " << board.move_to_str(std::get<1>(move_values[0]));
-	}
-	
-	if (side) {
-		int v = -1000;
-		for (unsigned int i = 0; i<move_values.size(); i++) {
-			Board new_board(board);
-			new_board.make_move(std::get<1>(move_values[i]));
-			std::vector<Move> new_moves = new_board.get_moves();
-			int new_v = alpha_beta_ordering(new_board, new_moves, depth-1, main_depth, alpha, beta, false, flag);
-			if (new_v > v) {
-				v = new_v;
-				best_move_inner = std::get<1>(move_values[i]);
-				if (depth == main_depth) {
-					std::cout << board.move_to_str(best_move_inner);
-				}
-			}
-			alpha = std::max(alpha, v);
-			if (beta <= alpha) {
-				break;
-			}
-		}
-		if (depth == main_depth) {
-			best_move = best_move_inner;
-		}
-		// save board value to hash_table:
-		store(board, depth, v);
-		return v;
-	}
-	else {
-		int v = 1000;
-		for (unsigned int i = 0; i<move_values.size(); i++) {
-			Board new_board(board);
-			new_board.make_move(std::get<1>(move_values[i]));
-			std::vector<Move> new_moves = new_board.get_moves();
-			int new_v = alpha_beta_ordering(new_board, new_moves, depth-1, main_depth, alpha, beta, true, flag);
-			if (new_v < v) {
-				v = new_v;
-				best_move_inner = std::get<1>(move_values[i]);
-				if (depth == main_depth) {
-					std::cout << board.move_to_str(best_move_inner);
-				}
-			}
-			beta = std::min(beta, v);
-			if (beta <= alpha) {
-				break;
-			}
-		}
-		if (depth == main_depth) {
-			best_move = best_move_inner;
-		}
-		// save board value to hash_table:
-		store(board, depth, v);
-		return v;
-	}
-	
-}
-
-Move Mind::best_move_alpha_beta(Board &board, int depth)
-{
-	
-	std::vector<Move> moves = board.get_moves();
-	std::atomic<bool> x (true);
-	alpha_beta_ordering(board, moves, depth, depth, -1000, 1000, board.get_turn(), &x);
-	return best_move;
-	
-}
-
-void Mind::best_move_deepening(Board &board, std::atomic<bool> *flag)
-{
-	
-	std::vector<Move> moves = board.get_moves();
 	
 	int depth = 1;
 	while (!*flag) {
 		
 		std::cout << "depth = " << depth << "\n";
 		
-		alpha_beta_ordering(board, moves, depth, depth, -1000, 1000, board.get_turn(), flag);
+		if (board.get_turn()) {
+			std::sort(begin(move_values), end(move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
+				return std::get<0>(t1) > std::get<0>(t2);
+			});
+		}
+		else {
+			std::sort(begin(move_values), end(move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
+				return std::get<0>(t1) < std::get<0>(t2);
+			});
+		}
+		
+		alpha_beta_ordering(board, move_values, depth, depth, -1000, 1000, board.get_turn(), flag);
 		
 		depth++;
 		
 	}
 	
+}
+
+Move &Mind::get_best_move()
+{
+	return best_move;
 }
