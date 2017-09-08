@@ -33,5 +33,6 @@ enum Piece {
 #include "move.h"
 #include "board.h"
 #include "mind.h"
+#include "commander.h"
 
 #endif /* chess_h */

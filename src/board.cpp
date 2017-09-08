@@ -805,6 +805,8 @@ void Board::make_move(Move &move)
 void Board::get_FEN(std::string FEN)
 {
 	
+	FEN += ' ';
+	
 	// set bitboards to zero:
 	for (int i = 0; i < NO_OF_TYPES; i++) {
 		board[i] = uint64_t(0);
@@ -816,6 +818,7 @@ void Board::get_FEN(std::string FEN)
 	en_passantable = false;
 	
 	char x;
+	std::string number;
 	
 	// piece placement
 	int file = 0;
@@ -884,19 +887,17 @@ void Board::get_FEN(std::string FEN)
 			}
 		}
 		else if (stage == 4) {
-			std::string number;
-			if ('x' != ' ') {
+			if (x != ' ') {
 				number += x;
 			}
 			else {
 				half_move_number = atoi(number.c_str());
 				stage++;
+				number.clear();
 			}
 		}
 		else if (stage == 5) {
-			std::string number;
-			if ('x' != ' ') {
-				number += x;
+			if (x != ' ') {
 				number += x;
 			}
 			else {
@@ -1034,4 +1035,81 @@ uint64_t Board::generate_hash()
 uint64_t Board::get_hash()
 {
 	return hash;
+}
+
+Move Board::long_algebraic_to_move(std::string move_str)
+{
+	
+	Square initial_position;
+	Square final_position;
+	int move_type = 0;
+	bool piece_taken = false;
+	Piece promotion_piece = NO_OF_TYPES;
+	
+	unsigned int pos = 0;
+	switch(move_str.at(pos)) {
+		case 'a': initial_position.file = 0; break;
+		case 'b': initial_position.file = 1; break;
+		case 'c': initial_position.file = 2; break;
+		case 'd': initial_position.file = 3; break;
+		case 'e': initial_position.file = 4; break;
+		case 'f': initial_position.file = 5; break;
+		case 'g': initial_position.file = 6; break;
+		case 'h': initial_position.file = 7; break;
+	}
+	pos++;
+	initial_position.rank = (int)move_str.at(pos) - 49;
+	pos++;
+	switch(move_str.at(pos)) {
+		case 'a': final_position.file = 0; break;
+		case 'b': final_position.file = 1; break;
+		case 'c': final_position.file = 2; break;
+		case 'd': final_position.file = 3; break;
+		case 'e': final_position.file = 4; break;
+		case 'f': final_position.file = 5; break;
+		case 'g': final_position.file = 6; break;
+		case 'h': final_position.file = 7; break;
+	}
+	pos++;
+	final_position.rank = (int)move_str.at(pos) - 49;
+	pos++;
+	bool side = piece_at_side(initial_position);
+	if (move_str.length() > 4) {
+		switch(move_str.at(pos)) {
+			case 'n': promotion_piece = side ? WHITE_KNIGHT : BLACK_KNIGHT; break;
+			case 'b': promotion_piece = side ? WHITE_BISHOP : BLACK_BISHOP; break;
+			case 'r': promotion_piece = side ? WHITE_ROOK : BLACK_ROOK; break;
+			case 'q': promotion_piece = side ? WHITE_QUEEN : BLACK_QUEEN; break;
+			case 'k': promotion_piece = side ? WHITE_KING : BLACK_KING; break;
+		}
+	}
+	// check for castling:
+	if (piece_at(initial_position) == side ? WHITE_KING : BLACK_KING) {
+		if (initial_position.file - final_position.file == -2) {
+			move_type = 2;
+		}
+		else if (initial_position.file - final_position.file == 2) {
+			move_type = 3;
+		}
+	}
+	// check for en passant:
+	if (piece_at(initial_position) == side ? WHITE_PAWN : BLACK_PAWN) {
+		if (abs(initial_position.file - final_position.file) == 1 && !is_piece_at(final_position)) {
+			move_type = 4;
+			piece_taken = true;
+		}
+	}
+	// check for piece promotion
+	if (promotion_piece != NO_OF_TYPES) {
+		move_type = 1;
+	}
+	// check if piece is taken
+	if (is_piece_at(final_position)) {
+		piece_taken = true;
+	}
+	
+	Move result(initial_position, final_position, move_type, piece_taken, promotion_piece);
+	
+	return result;
+	
 }

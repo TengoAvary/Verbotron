@@ -185,6 +185,11 @@ public:
 	// returns the board's current hash.
 	uint64_t get_hash();
 	
+	// converts 'move_str' in long algebraic notation to a move.
+	// potentially dangerous, since it assumes the move is a valid move.
+	// only to be used when reading opening books or accepting input from a uci.
+	Move long_algebraic_to_move(std::string move_str);
+	
 };
 
 #endif /* Board_h */

@@ -7,6 +7,7 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <sys/types.h>
 #include <vector>
 #include <algorithm>
@@ -18,7 +19,14 @@
 Mind::Mind()
 : best_move {{0,0}, {0,0}, 5, false}
 {
-
+	
+	// read openings from openings.txt
+	std::ifstream openings("/Users/Jack/Documents/Verbotron/Verbotron/openings.txt");
+	if (openings.is_open()) {
+		std::cout << "opened\n";
+		openings.close();
+	}
+	
 }
 
 void Mind::store(Board &board, int depth, int value)
@@ -108,6 +116,7 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &
 {
 	
 	if (*flag) {
+		// indicates the calculation was interrupted
 		return 1000000;
 	}
 	
@@ -134,13 +143,14 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &
 	
 	Move best_move_inner = std::get<1>(move_values[0]);
 	
-	if (depth == main_depth) {
-		for (int i = 0; i<move_values.size(); i++) {
-			Board new_board(board);
-			new_board.make_move(std::get<1>(move_values[i]));
-			std::cout << std::get<0>(move_values[i]) << " " << board.move_to_str(std::get<1>(move_values[i]));
-		}
-	}
+	// print move values
+	//if (depth == main_depth) {
+	//	for (int i = 0; i<move_values.size(); i++) {
+	//		Board new_board(board);
+	//		new_board.make_move(std::get<1>(move_values[i]));
+	//		std::cout << std::get<0>(move_values[i]) << " " << board.move_to_str(std::get<1>(move_values[i]));
+	//	}
+	//}
 	
 	if (side) {
 		int v = -1000;

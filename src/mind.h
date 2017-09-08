@@ -22,6 +22,9 @@ private:
 	// The key is the board hash, and the vaule is the tuple <depth, value>.
 	std::unordered_map<uint64_t, std::tuple<int, int>> hash_table;
 	
+	// opening book
+	std::unordered_map<uint64_t, Move> openings;
+	
 	// Mind's current opinion on what the best move is.
 	Move best_move;
 	
