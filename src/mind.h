@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <vector>
 #include <unordered_map>
+#include <atomic>
 
 class Mind {
 	
@@ -23,7 +24,7 @@ private:
 	std::unordered_map<uint64_t, std::tuple<int, int>> hash_table;
 	
 	// opening book
-	std::unordered_map<uint64_t, Move> openings;
+	std::unordered_map<uint64_t, std::vector<Move>> openings;
 	
 	// Mind's current opinion on what the best move is.
 	Move best_move;
@@ -35,7 +36,7 @@ private:
 
 public:
 
-	Mind();
+	Mind(Board &board);
 
 	// stores the 'value' of 'board' if and only if another value found at a deeper 'depth' is not already stored
 	void store(Board &board, int depth, int value);
@@ -51,6 +52,13 @@ public:
 	
 	// returns best_move, as stored in memory (doesn't calculate anything!)
 	Move &get_best_move();
+	
+	// returns whether or not the current board state is in the opening book.
+	bool is_opening_position(Board &board);
+	
+	// returns the move suggested by the opening book.
+	// check using is_opening_position() before using.
+	Move &best_move_from_openings(Board &board);
 	
 };
 

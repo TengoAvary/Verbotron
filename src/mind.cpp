@@ -13,19 +13,42 @@
 #include <algorithm>
 #include <cassert>
 #include <unordered_map>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h> 
 
 #include "chess.h"
 
-Mind::Mind()
+Mind::Mind(Board &board)
 : best_move {{0,0}, {0,0}, 5, false}
 {
 	
 	// read openings from openings.txt
-	std::ifstream openings("/Users/Jack/Documents/Verbotron/Verbotron/openings.txt");
-	if (openings.is_open()) {
-		std::cout << "opened\n";
-		openings.close();
+	std::ifstream openings_file("/home/jack/Documents/Verbotron/Verbotron/openings.txt");
+	if (!openings_file.is_open()) {
+		std::cout << "Openings table not found!\n";
 	}
+	else {
+		Board new_board(board);
+		std::string line;
+		std::string delimiter = " >> ";
+		while(getline(openings_file, line)) {
+			std::string FEN = line.substr(0, line.find(delimiter));
+			std::string move = line.substr(line.find(delimiter) + delimiter.length(), line.length());
+			new_board.get_FEN(FEN);
+			uint64_t board_hash = new_board.get_hash();
+			auto it = openings.find(board_hash);
+			if (it == openings.end()) {
+				std::vector<Move> new_vector;
+				new_vector.push_back(new_board.long_algebraic_to_move(move));
+				openings.insert({board_hash, new_vector});
+			}
+			else {
+				openings.at(board_hash).push_back(new_board.long_algebraic_to_move(move));
+			}
+		}
+	}
+	openings_file.close();
 	
 }
 
@@ -135,6 +158,7 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &
 		return board.get_value();
 	}
 	
+	// check position hasn't already been evaluated at a greater depth:
 	uint64_t board_hash = board.get_hash();
 	auto it = hash_table.find(board_hash);
 	if (it != hash_table.end() && std::get<0>(hash_table[board_hash]) >= depth) {
@@ -155,27 +179,27 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &
 	if (side) {
 		int v = -1000;
 		for (unsigned int i = 0; i<move_values.size(); i++) {
-			Board new_board(board);
-			new_board.make_move(std::get<1>(move_values[i]));
-			std::vector<Move> new_moves = new_board.get_moves();
+			Board board1(board);
+			board1.make_move(std::get<1>(move_values[i]));
+			std::vector<Move> moves1 = board1.get_moves();
 			// sort possible moves by value stored in hash_table, or by their naive value
-			std::vector<std::tuple<int, Move>> new_move_values;
-			for (unsigned int move = 0; move<new_moves.size(); move++) {
-				Board new_board(board);
-				new_board.make_move(new_moves[move]);
-				uint64_t board_hash = new_board.get_hash();
-				auto it = hash_table.find(board_hash);
+			std::vector<std::tuple<int, Move>> move_values1;
+			for (unsigned int move = 0; move<moves1.size(); move++) {
+				Board board2(board1);
+				board2.make_move(moves1[move]);
+				uint64_t board2_hash = board2.get_hash();
+				auto it = hash_table.find(board2_hash);
 				if (it != hash_table.end()) {
-					new_move_values.push_back(std::make_tuple(std::get<1>(hash_table[board_hash]), new_moves[move]));
+					move_values1.push_back(std::make_tuple(std::get<1>(hash_table[board2_hash]), moves1[move]));
 				}
 				else {
-					new_move_values.push_back(std::make_tuple(new_board.get_value(), new_moves[move]));
+					move_values1.push_back(std::make_tuple(board2.get_value(), moves1[move]));
 				}
 			}
-			std::sort(begin(new_move_values), end(new_move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
+			std::sort(begin(move_values1), end(move_values1), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
 				return std::get<0>(t1) < std::get<0>(t2);
 			});
-			int new_v = alpha_beta_ordering(new_board, new_move_values, depth-1, main_depth, alpha, beta, false, flag);
+			int new_v = alpha_beta_ordering(board1, move_values1, depth-1, main_depth, alpha, beta, false, flag);
 			std::get<0>(move_values[i]) = new_v;
 			if (new_v == 1000000) {
 				return 1000000;
@@ -202,27 +226,27 @@ int Mind::alpha_beta_ordering(Board &board, std::vector<std::tuple<int, Move>> &
 	else {
 		int v = 1000;
 		for (unsigned int i = 0; i<move_values.size(); i++) {
-			Board new_board(board);
-			new_board.make_move(std::get<1>(move_values[i]));
-			std::vector<Move> new_moves = new_board.get_moves();
+			Board board1(board);
+			board1.make_move(std::get<1>(move_values[i]));
+			std::vector<Move> moves1 = board1.get_moves();
 			// sort possible moves by value stored in hash_table, or by their naive value
-			std::vector<std::tuple<int, Move>> new_move_values;
-			for (unsigned int move = 0; move<new_moves.size(); move++) {
-				Board new_board(board);
-				new_board.make_move(new_moves[move]);
-				uint64_t board_hash = new_board.get_hash();
-				auto it = hash_table.find(board_hash);
+			std::vector<std::tuple<int, Move>> move_values1;
+			for (unsigned int move = 0; move<moves1.size(); move++) {
+				Board board2(board1);
+				board2.make_move(moves1[move]);
+				uint64_t board2_hash = board2.get_hash();
+				auto it = hash_table.find(board2_hash);
 				if (it != hash_table.end()) {
-					new_move_values.push_back(std::make_tuple(std::get<1>(hash_table[board_hash]), new_moves[move]));
+					move_values1.push_back(std::make_tuple(std::get<1>(hash_table[board2_hash]), moves1[move]));
 				}
 				else {
-					new_move_values.push_back(std::make_tuple(new_board.get_value(), new_moves[move]));
+					move_values1.push_back(std::make_tuple(board2.get_value(), moves1[move]));
 				}
 			}
-			std::sort(begin(new_move_values), end(new_move_values), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
+			std::sort(begin(move_values1), end(move_values1), [](std::tuple<int, Move> const &t1, std::tuple<int, Move> const &t2) {
 				return std::get<0>(t1) > std::get<0>(t2);
 			});
-			int new_v = alpha_beta_ordering(new_board, new_move_values, depth-1, main_depth, alpha, beta, true, flag);
+			int new_v = alpha_beta_ordering(board1, move_values1, depth-1, main_depth, alpha, beta, true, flag);
 			std::get<0>(move_values[i]) = new_v;
 			if (new_v == 1000000) {
 				return 1000000;
@@ -296,4 +320,21 @@ void Mind::best_move_deepening(Board &board, std::atomic<bool> *flag)
 Move &Mind::get_best_move()
 {
 	return best_move;
+}
+
+bool Mind::is_opening_position(Board &board)
+{
+	uint64_t board_hash = board.get_hash();
+	auto it = openings.find(board_hash);
+	return !(it == openings.end());
+}
+
+Move &Mind::best_move_from_openings(Board &board)
+{
+	for(unsigned int i = 0; i < openings.at(board.get_hash()).size(); i++) {
+		std::cout << board.move_to_str(openings.at(board.get_hash())[i]);
+	}
+	srand (time(NULL));
+	int index = rand() % openings.at(board.get_hash()).size();
+	return openings.at(board.get_hash())[index];
 }

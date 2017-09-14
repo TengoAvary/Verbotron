@@ -76,7 +76,8 @@ Board::Board()
     can_white_castle_queenside {true},
     can_black_castle_kingside {true},
     can_black_castle_queenside {true},
-	board_value {0}
+	board_value {0},
+	label {false}
 {
 	
 	// initialise hash longs
@@ -129,6 +130,11 @@ int Board::coor_to_bit_position(int r, int c)
     
     return 8*r + c;
     
+}
+
+void Board::toggle_label()
+{
+	label = !label;
 }
 
 bool Board::get_turn()
@@ -751,7 +757,7 @@ void Board::make_move(Move &move)
 		remove_piece(initial_position);
 		// check whether en passant will be possible next turn:
 		if (piece_at(final_position)%6 == 0) {
-			if (final_position.rank == final_position.rank + (turn ? 2 : -2)) {
+			if (final_position.rank == initial_position.rank + (turn ? 2 : -2)) {
 				en_passantable = true;
 				en_passant_square = {final_position.rank + (turn ? -1 : 1), final_position.file};
 			}
@@ -921,6 +927,8 @@ std::string Board::move_to_str(Move &move)
 	Piece moving_piece = piece_at(initial_square);
 	int move_type = move.get_move_type();
 	
+	std::vector<Square> constrained_squares = find_constrained_squares();
+	
 	result += (std::to_string(move_number) + ". ");
 	if (!piece_at_side(initial_square)) {
 		result += "...";
@@ -938,7 +946,7 @@ std::string Board::move_to_str(Move &move)
 			for (int i = 0; i < 8; i++) {
 				Square possible_knight_position = {final_square.rank + move_vectors[1][i].rank, final_square.file + move_vectors[1][i].file};
 				if (!(possible_knight_position.rank == initial_square.rank && possible_knight_position.file == initial_square.file)) {
-					if (on_board(possible_knight_position) && piece_at(possible_knight_position)%6 == 1 && piece_at_side(possible_knight_position) == piece_at_side(initial_square)) {
+					if (on_board(possible_knight_position) && piece_at(possible_knight_position)%6 == 1 && piece_at_side(possible_knight_position) == piece_at_side(initial_square) && !is_in(possible_knight_position, constrained_squares)) {
 						if (possible_knight_position.file == initial_square.file) {
 							result += rank_to_char[initial_square.rank];
 							break;
@@ -992,6 +1000,86 @@ std::string Board::move_to_str(Move &move)
 	}
 	
 	result += "\n";
+	
+	return result;
+	
+}
+
+std::string Board::move_to_str_raw(Move &move)
+{
+	
+	std::string result;
+	Square initial_square = move.get_initial_position();
+	Square final_square = move.get_final_position();
+	Piece moving_piece = piece_at(initial_square);
+	int move_type = move.get_move_type();
+	
+	std::vector<Square> constrained_squares = find_constrained_squares();
+	
+	if (move_type == 0 || move_type == 1 || move_type == 4) {
+		if (moving_piece%6 == 0 && move.is_piece_taken()) {
+			result += file_to_char[initial_square.file];
+		}
+		if (moving_piece%6 != 0) {
+			result += type_to_char(moving_piece%6);
+		}
+		// check if move is degenerate in knights:
+		if (moving_piece%6 == 1) {
+			for (int i = 0; i < 8; i++) {
+				Square possible_knight_position = {final_square.rank + move_vectors[1][i].rank, final_square.file + move_vectors[1][i].file};
+				if (!(possible_knight_position.rank == initial_square.rank && possible_knight_position.file == initial_square.file)) {
+					if (on_board(possible_knight_position) && piece_at(possible_knight_position)%6 == 1 && piece_at_side(possible_knight_position) == piece_at_side(initial_square) && !is_in(possible_knight_position, constrained_squares)) {
+						if (possible_knight_position.file == initial_square.file) {
+							result += rank_to_char[initial_square.rank];
+							break;
+						}
+						else {
+							result += file_to_char[initial_square.file];
+							break;
+						}
+					}
+				}
+			}
+		}
+		// check if move is degenerate in rooks:
+		if (moving_piece%6 == 3) {
+			for (int direction = 0; direction<8; direction+=2) {
+				std::vector<Square> look = look_along(final_square, direction, 1);
+				if (!look.empty()) {
+					Square possible_rook_position = look.back();
+					if (!(possible_rook_position.rank == initial_square.rank && possible_rook_position.file == initial_square.file)) {
+						if (piece_at(possible_rook_position)%6 == 3 && piece_at_side(possible_rook_position) == piece_at_side(initial_square)) {
+							if (possible_rook_position.file == initial_square.file) {
+								result += rank_to_char[initial_square.rank];
+							}
+							else {
+								result += file_to_char[initial_square.file];
+							}
+						}
+					}
+				}
+			}
+		}
+		if (move.is_piece_taken()) {
+			result += 'x';
+		}
+		result += file_to_char[final_square.file];
+		result += rank_to_char[final_square.rank];
+		if (move_type == 1) {
+			result += '=';
+			result += type_to_char(move.get_promotion_piece()%6);
+		}
+	}
+	else if (move_type == 2) {
+		result += "O-O";
+	}
+	else if (move_type == 3) {
+		result += "O-O-O";
+	}
+	
+	else if (move_type == 5) {
+		result += "NULL_MOVE";
+	}
 	
 	return result;
 	
@@ -1084,7 +1172,7 @@ Move Board::long_algebraic_to_move(std::string move_str)
 		}
 	}
 	// check for castling:
-	if (piece_at(initial_position) == side ? WHITE_KING : BLACK_KING) {
+	if (piece_at(initial_position) == (side ? WHITE_KING : BLACK_KING)) {
 		if (initial_position.file - final_position.file == -2) {
 			move_type = 2;
 		}
@@ -1093,7 +1181,7 @@ Move Board::long_algebraic_to_move(std::string move_str)
 		}
 	}
 	// check for en passant:
-	if (piece_at(initial_position) == side ? WHITE_PAWN : BLACK_PAWN) {
+	if (piece_at(initial_position) == (side ? WHITE_PAWN : BLACK_PAWN)) {
 		if (abs(initial_position.file - final_position.file) == 1 && !is_piece_at(final_position)) {
 			move_type = 4;
 			piece_taken = true;
@@ -1111,5 +1199,91 @@ Move Board::long_algebraic_to_move(std::string move_str)
 	Move result(initial_position, final_position, move_type, piece_taken, promotion_piece);
 	
 	return result;
+	
+}
+
+std::string Board::move_to_long_algebraic(Move &move)
+{
+	
+	std::string result;
+	
+	result += file_to_char[move.get_initial_position().file];
+	result += rank_to_char[move.get_initial_position().rank];
+	result += file_to_char[move.get_final_position().file];
+	result += rank_to_char[move.get_final_position().rank];
+	
+	return result;
+	
+}
+
+std::string Board::export_FEN()
+{
+	
+	std::string FEN;
+	
+	for (int rank = 7; rank >= 0; rank--) {
+		int empty_count = 0;
+		for (int file = 0; file<8; file++) {
+			if (is_piece_at(rank, file)) {
+				if (empty_count != 0) {
+					FEN += std::to_string(empty_count);
+					empty_count = 0;
+				}
+				FEN += type_to_char(piece_at(rank, file));
+			}
+			else {
+				empty_count++;
+			}
+		}
+		if (empty_count != 0) {
+			FEN += std::to_string(empty_count);
+		}
+		if (rank != 0) {
+			FEN += '/';
+		}
+	}
+	
+	FEN += ' ';
+	FEN += turn ? 'w' : 'b';
+	FEN += ' ';
+	
+	bool some_castling = false;
+	if (can_white_castle_kingside) {
+		FEN += 'K';
+		some_castling = true;
+	}
+	if (can_white_castle_queenside) {
+		FEN += 'Q';
+		some_castling = true;
+	}
+	if (can_black_castle_kingside) {
+		FEN += 'k';
+		some_castling = true;
+	}
+	if (can_black_castle_queenside) {
+		FEN += 'q';
+		some_castling = true;
+	}
+	if (!some_castling) {
+		FEN += '-';
+	}
+	
+	FEN += ' ';
+	
+	if (en_passantable) {
+		FEN += file_to_char[en_passant_square.file];
+		FEN += rank_to_char[en_passant_square.rank];
+	}
+	else {
+		FEN += '-';
+	}
+	
+	FEN += ' ';
+	
+	FEN += std::to_string(half_move_number);
+	FEN += ' ';
+	FEN += std::to_string(move_number);
+	
+	return FEN;
 	
 }

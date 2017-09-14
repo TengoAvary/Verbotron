@@ -26,6 +26,9 @@ private:
 	
     bool turn;
     
+	// used for debugging.
+	bool label;
+	
 	// did a pawn move forward by two spaces on the previous turn
     bool en_passantable;
     
@@ -93,6 +96,9 @@ public:
 	
 	// returns a random long (used for hashing).
 	static uint64_t rand64();
+	
+	// toggles label from true <-> false.
+	void toggle_label();
 	
 	// returns the current turn.
 	bool get_turn();
@@ -174,8 +180,11 @@ public:
 	// Reads in FEN string and arranges the board accordingly.
 	void get_FEN(std::string FEN);
 	
-	// Returns the string for 'move' in ordinary notation.
+	// returns the string for 'move' in ordinary notation.
 	std::string move_to_str(Move &move);
+	
+	// returns the string for 'move' in ordinary notation, without the move number preamble.
+	std::string move_to_str_raw(Move &move);
 	
 	// HASHING FUNCTIONS
 	
@@ -189,6 +198,12 @@ public:
 	// potentially dangerous, since it assumes the move is a valid move.
 	// only to be used when reading opening books or accepting input from a uci.
 	Move long_algebraic_to_move(std::string move_str);
+	
+	// returns the string for 'move' in long algebraic notation.
+	std::string move_to_long_algebraic(Move &move);
+	
+	// returns the FEN string of the current board state.
+	std::string export_FEN();
 	
 };
 
