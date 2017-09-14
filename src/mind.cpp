@@ -24,7 +24,7 @@ Mind::Mind(Board &board)
 {
 	
 	// read openings from openings.txt
-	std::ifstream openings_file("/home/jack/Documents/Verbotron/Verbotron/openings.txt");
+	std::ifstream openings_file("/Users/Jack/Documents/Verbotron/Verbotron/openings.txt");
 	if (!openings_file.is_open()) {
 		std::cout << "Openings table not found!\n";
 	}
@@ -331,9 +331,6 @@ bool Mind::is_opening_position(Board &board)
 
 Move &Mind::best_move_from_openings(Board &board)
 {
-	for(unsigned int i = 0; i < openings.at(board.get_hash()).size(); i++) {
-		std::cout << board.move_to_str(openings.at(board.get_hash())[i]);
-	}
 	srand (time(NULL));
 	int index = rand() % openings.at(board.get_hash()).size();
 	return openings.at(board.get_hash())[index];
