@@ -1,2 +1,0 @@
--- move_to_str function should recognise checks and checkmates.
-   Should do this once we have a board.make_move() function
